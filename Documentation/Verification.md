@@ -66,6 +66,13 @@ and a dismantling row). The check grabbed the wrong row and failed loudly — th
 search now requires the verb as well, which is what "check the interface the
 player touches" is supposed to do.
 
+Both workflows ran on GitHub for the change, on `2bb7dc9`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #19 | **success** — naming gate, purity, the 646 tests, layout, build, smoke (58 checks) |
+| `android.yml` | Android ARM64 #19 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
 ## The Reliquary's dismantling and the Hearth page (2026-10-04)
 
 The first half of plan §3.3 lands: gear held in the bag breaks down at the
