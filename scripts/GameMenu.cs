@@ -41,6 +41,7 @@ namespace Ghasaq.Game
             Main,
             Attributes,
             World,
+            Hearth,
             Sigils,
             Saves
         }
@@ -156,6 +157,11 @@ namespace Ghasaq.Game
                     AddTravelRows();
                     break;
 
+                case MenuPage.Hearth:
+                    AddRow("<  BACK", () => GoTo(MenuPage.Main));
+                    AddHearthRows();
+                    break;
+
                 case MenuPage.Sigils:
                     AddRow("<  BACK", () => GoTo(MenuPage.Main));
                     AddSigilRows();
@@ -254,6 +260,11 @@ namespace Ghasaq.Game
                 points > 0 ? "ATTRIBUTES   (" + points + " to spend)" : "ATTRIBUTES",
                 () => GoTo(MenuPage.Attributes),
                 points > 0 ? new Color(0.95f, 0.88f, 0.60f) : new Color(0.82f, 0.88f, 0.94f));
+
+            AddRow(
+                "الموقد — HEARTH   (سُخام: " + Root.Session.SootBank.Balance + ")",
+                () => GoTo(MenuPage.Hearth),
+                new Color(0.94f, 0.76f, 0.48f));
 
             SigilDefinition carriedSigil = Root.Session.EquippedSigil;
 
@@ -475,6 +486,91 @@ namespace Ghasaq.Game
                     new Color(0.82f, 0.88f, 0.94f));
 
                 added++;
+            }
+        }
+
+        // --------------------------------- the hearth -----------------------------
+
+        /// <summary>
+        /// The Hearth's bench (plan sections 3.3 and 3.7): the banked Soot and the
+        /// hammer that makes it.
+        ///
+        /// Dismantling is a rule of the simulation, not of this screen
+        /// (<see cref="Ghasaq.Core.Simulation.GameSession.TrySalvage"/>): the menu
+        /// asks, and shows whatever refusal comes back - away from the camp or
+        /// mid-fight that is a sentence, not a hidden grey row. Only gear is
+        /// listed; the piece in each row is what its hammer would take, never the
+        /// one on the character.
+        /// </summary>
+        private void AddHearthRows()
+        {
+            AddNote("سُخام مدَّخر: " + Root.Session.SootBank.Balance +
+                " — تفكيك العتاد غير الملبوس إلى سُخام يبقى بين الجولات.");
+            AddHeader("المِطرقة — فكّ قطعة:");
+
+            int added = 0;
+
+            foreach (KeyValuePair<string, int> entry in Root.Session.Inventory.Entries)
+            {
+                if (added >= 6)
+                {
+                    AddNote("...وبقيت قطع أخرى في الحقيبة.");
+                    break;
+                }
+
+                if (!Root.Session.Items.TryGet(entry.Key, out ItemDefinition definition) ||
+                    definition == null || !definition.IsEquippable || definition.IsBound)
+                {
+                    continue;
+                }
+
+                string id = entry.Key;
+                string name = definition.DisplayName;
+                int soot = SalvageTuning.SootFor(definition.Rarity);
+
+                AddRow(
+                    "فكّ  " + name + Describe(id) + "  →  " + soot + " سُخام",
+                    () =>
+                    {
+                        if (Root.Session.TrySalvage(id, out SalvageFailure failure, out int yielded))
+                        {
+                            ShowStatus("فُكّت " + name + " إلى " + yielded +
+                                " سُخام. الرصيد: " + Root.Session.SootBank.Balance + ".");
+                        }
+                        else
+                        {
+                            ShowStatus(DescribeSalvageFailure(failure));
+                        }
+
+                        Rebuild();
+                    },
+                    new Color(0.88f, 0.8f, 0.62f));
+
+                added++;
+            }
+
+            if (added == 0)
+            {
+                AddNote("لا عتاد غير ملبوس في الحقيبة — ما تجده في الميدان يُفكّ هنا.");
+            }
+
+            AddRow(
+                "الوَسْم — SIGIL   (التبديل في الموقد)",
+                () => GoTo(MenuPage.Sigils),
+                new Color(0.94f, 0.82f, 0.55f));
+        }
+
+        private static string DescribeSalvageFailure(SalvageFailure failure)
+        {
+            switch (failure)
+            {
+                case SalvageFailure.UnknownItem: return "لست تحمل هذه القطعة.";
+                case SalvageFailure.NotSalvageable: return "ليست قطعة عتاد — المواد والمستهلِكات لا تُفكَّك.";
+                case SalvageFailure.Bound: return "مربوطة بالحكاية — لا تُفكَّك ولا تُباع.";
+                case SalvageFailure.NotHeld: return "لا قطعة منها في الحقيبة — الملبوسة لا تُفكَّك.";
+                case SalvageFailure.NotAtHearth: return "المِطرقة في الموقد — مخيّم الجمرة الأخيرة، لا هاهنا.";
+                case SalvageFailure.InCombat: return "لا تفكيك وسط القتال — عد إلى الموقد.";
+                default: return "تعذّر التفكيك.";
             }
         }
 

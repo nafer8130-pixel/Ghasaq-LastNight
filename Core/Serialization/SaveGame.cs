@@ -91,6 +91,14 @@ namespace Ghasaq.Core.Serialization
         public string EquippedSigilId = "";
 
         /// <summary>
+        /// Permanent السُّخام / Soot banked by dismantling gear at the Hearth
+        /// (plan section 3.3). Deliberately not the in-run meter of plan
+        /// section 3.6, which is run state and is never saved: this is the
+        /// balance that accumulates between runs.
+        /// </summary>
+        public int SootBalance;
+
+        /// <summary>
         /// Saved generator state, so loot and combat rolls continue from where they
         /// left off rather than restarting. Named for the value it belongs to.
         /// </summary>
@@ -121,6 +129,7 @@ namespace Ghasaq.Core.Serialization
                 TotalExperience = TotalExperience,
                 UnspentAttributePoints = UnspentAttributePoints,
                 StatBoosts = (float[])StatBoosts.Clone(),
+                SootBalance = SootBalance,
                 RngState = RngState,
                 RngIncrement = RngIncrement,
                 Inventory = new List<ItemStack>(Inventory),

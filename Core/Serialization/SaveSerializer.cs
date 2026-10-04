@@ -69,6 +69,7 @@ namespace Ghasaq.Core.Serialization
             data.Set("quests", QuestsToJson(save.Quests));
             data.Set("discoveredRegions", StringsToJson(save.DiscoveredRegions));
             data.Set("sigil", save.EquippedSigilId ?? "");
+            data.Set("soot", save.SootBalance);
             data.Set("rngState", save.RngState.ToString(CultureInfo.InvariantCulture));
             data.Set("rngIncrement", save.RngIncrement.ToString(CultureInfo.InvariantCulture));
 
@@ -144,6 +145,10 @@ namespace Ghasaq.Core.Serialization
             save.Quests = QuestsFromJson(data.Get("quests"));
             save.DiscoveredRegions = data.Get("discoveredRegions")?.AsStringList() ?? new List<string>();
             save.EquippedSigilId = data.Get("sigil")?.AsString("") ?? "";
+
+            // A field added after the first saves shipped: an old file simply has
+            // no soot and loads with an empty bank.
+            save.SootBalance = data.Get("soot")?.AsInt(0) ?? 0;
 
             save.RngState = ParseUnsigned(data.Get("rngState"), 0UL);
             save.RngIncrement = ParseUnsigned(data.Get("rngIncrement"), 1UL);

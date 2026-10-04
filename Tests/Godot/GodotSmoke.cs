@@ -4,6 +4,7 @@ using Godot;
 using Ghasaq.Core.Combat;
 using Ghasaq.Game;
 using Ghasaq.Core.Content;
+using Ghasaq.Core.Items;
 using Ghasaq.Core.Numerics;
 using Ghasaq.Core.Progression;
 using Ghasaq.Core.Randomness;
@@ -17,8 +18,9 @@ namespace Ghasaq.Tests
     ///
     /// It exercises the engine-free core through the engine: the deterministic
     /// RNG must keep its exact parity, a session must boot, a fight must actually
-    /// resolve, a save must round-trip, and the Sigil Price surface must be
-    /// drawable - a font with the Arabic glyphs and five authored Price lines.
+    /// resolve, a save must round-trip, the Sigil Price surface must be drawable
+    /// - a font with the Arabic glyphs and five authored Price lines - and the
+    /// Hearth's salvage loop must run from the menu a player actually touches.
     /// Run with:
     ///
     ///     godot --headless --path . res://Tests/Godot/GodotSmoke.tscn
@@ -59,6 +61,8 @@ namespace Ghasaq.Tests
             CheckSigilSurface();
             CheckBattleFeedback();
             CheckSootSurface();
+            CheckHearthSalvage();
+            CheckHearthMenu();
 
             if (_failures == 0)
             {
@@ -306,6 +310,146 @@ namespace Ghasaq.Tests
             Check(startOfWindup == 0f && midWindup > 0f && midWindup < 1f && endOfWindup == 1f
                 && BattleFeedback.TelegraphStrength(CastPhase.Ready, 0.5f, 0.5f) == 0f,
                 "the telegraph ramps from 0 to 1 across the wind-up and is silent when ready");
+        }
+
+        // ------------------------------------------------------ the hearth ---
+
+        /// <summary>
+        /// The Hearth's dismantling loop (plan sections 3.3 and 3.7): gear the
+        /// player holds breaks down into the permanent Soot balance - only at
+        /// the camp, never the equipped copy, never what is not gear - and the
+        /// balance rides a save.
+        /// </summary>
+        private void CheckHearthSalvage()
+        {
+            GameSession session = BuildSession();
+            session.GrantItem(GameContent.ItemEmberRelic, 1);
+
+            // The session boots in the Grey Wilds, away from the Hearth's camp.
+            Check(!session.TrySalvage(GameContent.ItemEmberRelic, out SalvageFailure away, out _)
+                && away == SalvageFailure.NotAtHearth,
+                "dismantling is refused away from the Hearth's camp");
+
+            Check(session.SootBank.Balance == 0 && session.Inventory.Count(GameContent.ItemEmberRelic) == 1,
+                "a refused dismantle loses nothing");
+
+            session.EnterRegion(GameContent.RegionCamp);
+
+            Check(session.TrySalvage(GameContent.ItemEmberRelic, out SalvageFailure failure, out int soot)
+                && failure == SalvageFailure.None
+                && soot == SalvageTuning.SootFor(ItemRarity.Rare)
+                && soot == 15,
+                "a rare Relic breaks down into its yield of Soot in the camp");
+
+            Check(session.SootBank.Balance == 15 && session.Inventory.Count(GameContent.ItemEmberRelic) == 0,
+                "the piece leaves the bag and the soot lands in the bank");
+
+            session.GrantItem(GameContent.ItemSentinelsCore, 1);
+            Check(!session.TrySalvage(GameContent.ItemSentinelsCore, out SalvageFailure bound, out _)
+                && bound == SalvageFailure.Bound,
+                "a story-bound piece cannot be dismantled");
+
+            session.GrantItem(GameContent.ItemAsh, 3);
+            Check(!session.TrySalvage(GameContent.ItemAsh, out SalvageFailure material, out _)
+                && material == SalvageFailure.NotSalvageable,
+                "materials are not gear and cannot be dismantled");
+
+            string json = SaveSerializer.Serialize(session.CreateSave());
+            Check(SaveSerializer.TryDeserialize(json, out SaveGame loaded, out string error),
+                "a save carrying soot deserialises" + (error == null ? "" : " (" + error + ")"));
+
+            GameSession restored = BuildSession();
+            restored.ApplySave(loaded);
+
+            Check(restored.SootBank.Balance == 15,
+                "the Soot balance survives a save round-trip");
+        }
+
+        // ------------------------------------------------------ the hearth (menu) ---
+
+        /// <summary>
+        /// The Hearth page through the interface a player touches: the main
+        /// scene is instantiated, the menu opened, and the Hearth visited by
+        /// pressing its button. This is where the row labels, the bank note and
+        /// the salvage action are proven to exist outside the core.
+        /// </summary>
+        private void CheckHearthMenu()
+        {
+            var scene = GD.Load<PackedScene>("res://scenes/Main.tscn");
+            Check(scene != null, "the main scene loads for the menu check");
+
+            if (scene == null)
+            {
+                return;
+            }
+
+            Node main = scene.Instantiate();
+            AddChild(main);
+
+            var root = main as GameRoot;
+            var menu = main.GetNodeOrNull<GameMenu>("UI/GameMenu");
+
+            Check(root != null && root.Session != null && menu != null,
+                "the main scene arrives wired: session and menu");
+
+            if (root == null || root.Session == null || menu == null)
+            {
+                main.QueueFree();
+                return;
+            }
+
+            // The run starts in the Wilds with its hostiles standing; the hammer
+            // waits in the camp. Travel goes through the game's own flow (the same
+            // call the World page makes), which clears the old region's encounter
+            // and spawns the camp's - none.
+            Check(root.TravelTo(GameContent.RegionCamp, out string travelError),
+                "the run can travel back to the Hearth's camp"
+                + (string.IsNullOrEmpty(travelError) ? "" : " (" + travelError + ")"));
+            root.Session.GrantItem(GameContent.ItemEmberRelic, 1);
+
+            menu.SetOpen(true);
+
+            VBoxContainer rows = menu.GetNode<VBoxContainer>("Panel/VBox/Rows");
+
+            Button hearthRow = FindRow(rows, "الموقد — HEARTH");
+            Check(hearthRow != null && hearthRow.Text.Contains("سُخام: 0"),
+                "the main page shows the Hearth with the banked Soot");
+
+            if (hearthRow != null)
+            {
+                hearthRow.EmitSignal(BaseButton.SignalName.Pressed);
+
+                Button salvageRow = FindRow(rows, "Ember Relic");
+                Check(salvageRow != null && salvageRow.Text.Contains("15 سُخام"),
+                    "the Hearth page offers the Relic for 15 Soot");
+
+                if (salvageRow != null)
+                {
+                    salvageRow.EmitSignal(BaseButton.SignalName.Pressed);
+
+                    Check(root.Session.SootBank.Balance == 15,
+                        "pressing the row dismantles the piece and banks the Soot");
+                    Check(FindRow(rows, "سُخام مدَّخر: 15") != null,
+                        "the Hearth page redraws with the new balance");
+                }
+            }
+
+            menu.SetOpen(false);
+            main.QueueFree();
+        }
+
+        /// <summary>The visible row whose label contains a fragment, or null.</summary>
+        private static Button FindRow(VBoxContainer rows, string fragment)
+        {
+            for (int i = 0; i < rows.GetChildCount(); i++)
+            {
+                if (rows.GetChild(i) is Button button && button.Visible && button.Text.Contains(fragment))
+                {
+                    return button;
+                }
+            }
+
+            return null;
         }
 
         // -------------------------------------------------------------- soot ---

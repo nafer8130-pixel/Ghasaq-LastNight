@@ -4,6 +4,67 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## The Reliquary's dismantling and the Hearth page (2026-10-04)
+
+The first half of plan §3.3 lands: gear held in the bag breaks down at the
+الموقد / Hearth (plan §3.7) into السُّخام / Soot, and the bank is a permanent
+balance that rides every save. The menu gains an `الموقد — HEARTH` page listing,
+for each dismantlable piece, the Soot its hammer would pay. Forging (the sink),
+affix prefixes and the comparison view are deliberately **not** built yet —
+[Reliquary.md](Reliquary.md) states exactly what is and is not.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **633 passed, 0 failed** (317 ms; 619 before this change, 14 new) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 48/48 checks** (33 before; 15 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,001,758 bytes (99 MB), sha256 `dabba298e00efbe8c8f329335644a0db8877e1c4387d57d24ea3ae30ff2d1746`, signed and verified with `apksigner` |
+
+New in code:
+
+- `Core/Items/SootBank.cs` — the permanent balance, deliberately separate from
+  the in-run meter: `Deposit` accumulates, saturates instead of wrapping, and
+  ignores non-positive amounts; `LoadFrom` clamps a hand-edited negative value.
+- `Core/Items/Salvage.cs` — `SalvageTuning.SootFor(rarity)` (draft yields
+  2 / 6 / 15 / 40 / 80 for Common → Mythic) and the seven `SalvageFailure`
+  reasons.
+- `GameSession.TrySalvage` — the rule: only non-bound gear the bag holds, only
+  at a camp region with no hostiles standing (the same reading of "the Hearth"
+  the Sigil swap uses). Every check lands before anything moves, so a refused
+  dismantle loses nothing; the piece leaving the bag and the soot landing in the
+  bank happen in one call. The equipped copy is out of reach by construction —
+  it is not in the bag.
+- `SaveGame.SootBalance` + `SaveSerializer` (JSON key `soot`) — an older save
+  without the field loads with an empty bank (`Deserialize_DefaultsMissingFields`
+  pins it).
+- `scripts/GameMenu.cs` — `MenuPage.Hearth`: the bank note, one row per
+  dismantlable piece with its yield (`فكّ  Ember Relic … → 15 سُخام`), refusals
+  reported as sentences by `DescribeSalvageFailure`, and a link to the Sigil
+  stand. Reached from the main page's `الموقد — HEARTH   (سُخام: N)` row.
+- Fourteen core tests (`SalvageTests`, `SootBankTests`) plus three assertions in
+  `SaveSystemTests` — the yields, the loop, the five refusals, the save
+  round-trip, and the bank's arithmetic.
+- Fifteen smoke checks — eight for the core loop (refused away from the camp
+  without loss, rare gear pays 15, the piece leaves the bag, bound and material
+  refusals, save round-trip) and seven driving the menu's own buttons.
+
+**Not measured:** the Hearth page is drawing. The environment still has no
+display; the page has been exercised by compilation, by the smoke test pressing
+its buttons, and by an error-free headless run, but never *seen*. Whether the
+trade ("keep this rare piece" vs "15 Soot") reads clearly with thumbs on a phone
+is exactly the question the feel gate in Reliquary.md leaves open.
+
+One detail worth recording: the first version of the menu check entered the camp
+with `GameSession.EnterRegion` and left the Grey Wilds' five hostiles standing
+on the encounter, and the Hearth duly refused with `InCombat`. That was the rule
+binding correctly at the menu; the check now travels through
+`GameRoot.TravelTo` — the same call the World page makes — which clears the old
+region's encounter and spawns the camp's (none).
+
 ## The Soot pass: the meter and the Dimming (2026-10-04)
 
 The remaining slice work of [Soot.md](Soot.md) is done: committing to a

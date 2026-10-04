@@ -36,6 +36,7 @@ namespace Ghasaq.Core.Tests.Serialization
                     new QuestSnapshot("q-arrival", QuestStatus.TurnedIn, new[] { 1 })
                 },
                 DiscoveredRegions = new List<string> { "camp", "wilds", "hollow-ruins" },
+                SootBalance = 350,
                 RngState = 9876543210987654321UL,
                 RngIncrement = 1442695040888963407UL
             };
@@ -59,6 +60,7 @@ namespace Ghasaq.Core.Tests.Serialization
             Assert.Equal(original.FacingDegrees, restored.FacingDegrees, 3);
             Assert.Equal(original.TotalExperience, restored.TotalExperience);
             Assert.Equal(original.UnspentAttributePoints, restored.UnspentAttributePoints);
+            Assert.Equal(original.SootBalance, restored.SootBalance);
         }
 
         [Fact]
@@ -194,6 +196,7 @@ namespace Ghasaq.Core.Tests.Serialization
             Assert.Equal("s", restored.SlotId);
             Assert.Equal("Wanderer", restored.ProfileName);
             Assert.Equal(0, restored.TotalExperience);
+            Assert.Equal(0, restored.SootBalance);
             Assert.Empty(restored.Inventory);
             Assert.Empty(restored.Quests);
             Assert.Equal(Float3.Zero, restored.Position);

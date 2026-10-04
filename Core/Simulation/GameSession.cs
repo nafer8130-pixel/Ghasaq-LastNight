@@ -56,6 +56,7 @@ namespace Ghasaq.Core.Simulation
 
             Inventory = new Inventory(Items);
             Equipment = new EquipmentLoadout(Player, Items);
+            SootBank = new SootBank();
             Quests = new QuestLog();
             Chapters = new ChapterTracker(Quests);
             World = new WorldGraph();
@@ -77,6 +78,13 @@ namespace Ghasaq.Core.Simulation
         public Inventory Inventory { get; private set; }
 
         public EquipmentLoadout Equipment { get; private set; }
+
+        /// <summary>
+        /// The permanent السُّخام / Soot balance, fed by dismantling gear at the
+        /// Hearth (plan section 3.3). Separate from the in-run meter on the
+        /// player, which prices a single fight and is deliberately never saved.
+        /// </summary>
+        public SootBank SootBank { get; private set; }
 
         public QuestLog Quests { get; private set; }
 
@@ -673,6 +681,82 @@ namespace Ghasaq.Core.Simulation
             return true;
         }
 
+        /// <summary>
+        /// Breaks one piece of carried gear down at the Hearth's hammer and banks
+        /// its soot (plan sections 3.3 and 3.7).
+        ///
+        /// The piece must be gear the player holds: an equipped copy is not in the
+        /// bag and never comes off to pay for this. The act belongs to the Hearth -
+        /// a camp region, no hostiles standing - the same place and the same calm
+        /// the Sigil swap requires. Every rule is checked before anything moves, so
+        /// a refused dismantle loses nothing, and the item leaving the bag and the
+        /// soot landing in the bank happen in one call, so neither can happen
+        /// without the other.
+        /// </summary>
+        public bool TrySalvage(string itemId, out SalvageFailure failure, out int soot)
+        {
+            failure = SalvageFailure.UnknownItem;
+            soot = 0;
+
+            if (string.IsNullOrEmpty(itemId)
+                || !Items.TryGet(itemId, out ItemDefinition definition)
+                || definition == null)
+            {
+                return false;
+            }
+
+            if (definition.IsBound)
+            {
+                failure = SalvageFailure.Bound;
+                return false;
+            }
+
+            if (!definition.IsEquippable)
+            {
+                failure = SalvageFailure.NotSalvageable;
+                return false;
+            }
+
+            if (!Inventory.Has(itemId))
+            {
+                failure = SalvageFailure.NotHeld;
+                return false;
+            }
+
+            if (Encounter.HostilesRemaining > 0)
+            {
+                failure = SalvageFailure.InCombat;
+                return false;
+            }
+
+            // Same reading of "the Hearth" as the Sigil swap: the region's kind,
+            // not a region id, so the simulation layer never learns this game's
+            // map by name.
+            RegionDefinition here = World.Get(RegionId);
+            if (here == null || here.Kind != RegionKind.Camp)
+            {
+                failure = SalvageFailure.NotAtHearth;
+                return false;
+            }
+
+            if (Inventory.Remove(itemId, 1) <= 0)
+            {
+                failure = SalvageFailure.NotHeld;
+                return false;
+            }
+
+            soot = SalvageTuning.SootFor(definition.Rarity);
+            SootBank.Deposit(soot);
+
+            // The bag changed, so a collection objective may have moved - possibly
+            // backwards, if the dismantled piece was one the player had to hold.
+            SyncCollectionObjectives();
+            AdvanceQuests();
+
+            failure = SalvageFailure.None;
+            return true;
+        }
+
         // -------------------------------- consumables -----------------------------
 
         /// <summary>
@@ -867,6 +951,7 @@ namespace Ghasaq.Core.Simulation
                 EquippedSigilId = Player.Sigil != null && Player.Sigil.Definition != null
                     ? Player.Sigil.Definition.Id
                     : "",
+                SootBalance = SootBank.Balance,
                 RngState = Rng.State,
                 RngIncrement = Rng.Increment
             };
@@ -901,6 +986,7 @@ namespace Ghasaq.Core.Simulation
             Progression.LoadFrom(save.TotalExperience, save.UnspentAttributePoints, save.StatBoosts);
             Inventory.LoadFrom(save.Inventory, out _);
             Equipment.LoadFrom(save.Equipment);
+            SootBank.LoadFrom(save.SootBalance);
             ApplyQuestSnapshots(save.Quests);
 
             // The carried Sigil is content the session was handed, so it is
