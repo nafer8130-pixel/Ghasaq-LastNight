@@ -25,11 +25,12 @@ commitment rule and the refusal rule.
   death or lost control: the player controls the risk, and the meter only
   re-prices the fight. (The plan rejects a descent bar outright; this is not
   one.)
-- The plan's "light visual distortion" is deliberately **not built yet**: it is
-  gated on accessibility settings ("can be turned off in accessibility
-  settings", plan §3.6/§6), and this build has no settings screen. The bar and
-  the عَتْمة mark carry the state until there is one; the distortion will be
-  added together with its off-switch, not before.
+- The plan's "light visual distortion" is **built, with its off-switch**
+  (2026-10-04): a pulsing edge vignette that deepens with the meter
+  (`Hud.DrawDimmingVignette`), defaulting to ON and switchable off in the
+  accessibility settings ([Accessibility.md](Accessibility.md), plan §3.6/§6).
+  The bar and the عَتْمة mark still carry the state on their own, so nothing is
+  lost when the distortion is switched off.
 
 ## The numbers (draft)
 

@@ -37,6 +37,16 @@ namespace Ghasaq.Game
         /// <summary>Layers the camera must not see through: the world and camera blockers.</summary>
         public uint ObstructionMask = Arena.WorldLayer | (1u << 2);
 
+        /// <summary>
+        /// How much of an impulse reaches the camera. The accessibility
+        /// settings lower it to a fifth for "reduce shake" (plan section 6);
+        /// the hit-stop is untouched, because a held frame is not motion.
+        /// </summary>
+        public float ShakeScale = 1f;
+
+        /// <summary>The impulse currently decaying, exposed so the smoke test can hold the scale to its effect.</summary>
+        public float PendingShake => _shake;
+
         private Vector3 _smoothedTarget;
         private float _currentDistance;
         private float _shake;
@@ -58,7 +68,7 @@ namespace Ghasaq.Game
         /// <summary>Adds an impulse to the camera, for hit feedback.</summary>
         public void Shake(float amount)
         {
-            _shake = Mathf.Max(_shake, Mathf.Clamp(amount, 0f, 1f));
+            _shake = Mathf.Max(_shake, Mathf.Clamp(amount, 0f, 1f) * Mathf.Clamp(ShakeScale, 0f, 1f));
         }
 
         public override void _PhysicsProcess(double deltaSeconds)

@@ -35,8 +35,8 @@ Unity folders (`Assets/`, `Packages/`, `ProjectSettings/`) are gone too.
 | Area | State |
 | --- | --- |
 | Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, Soot and the Dimming, the Reliquary (rare prefixes, dismantling into and forging from a permanent Soot bank), items, quests, world, saves | **Done — 661 tests passing** |
-| Godot game layer (`scripts/`, `scenes/`) — arena, player, enemies, camera, input, HUD (Sigil Price surface and Soot meter), menu (with the Hearth's forging and dismantling bench), saves | **Done — builds clean, runs headless** |
-| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface, the hit-feedback rules, the Soot meter and its surface, the rare prefixes (a drop rolls one, the same seed replays it), the Hearth's dismantling and forging loops, and the defeat loop (a fallen bearer's screen refuses to close until the row returns them to the camp) — all driven through the menu's own buttons |
+| Godot game layer (`scripts/`, `scenes/`) — arena, player, enemies, camera, input, HUD (Sigil Price surface and Soot meter), menu (with the Hearth's forging and dismantling bench and the accessibility settings), saves | **Done — builds clean, runs headless** |
+| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface, the hit-feedback rules, the Soot meter and its surface, the rare prefixes (a drop rolls one, the same seed replays it), the Hearth's dismantling and forging loops, the defeat loop (a fallen bearer's screen refuses to close until the row returns them to the camp), and the accessibility settings (shake, the Dimming's distortion, text size, colour-blind cues) — all driven through the menu's own buttons |
 | Android ARM64 APK | **Produced and validated locally** — see below |
 | GitHub Actions CI | `ci.yml` runs the Godot gates; `android.yml` exports the ARM64 APK |
 
@@ -67,11 +67,18 @@ installed beyond Godot itself:
   it fells the bearer with a lethal blow: the defeat screen opens, refuses to
   be dismissed, and its one row raises the bearer at full health in the camp
   with the Soot meter washed off - and the risen bearer can walk back out to
-  the Wilds with the fight intact.
+  the Wilds with the fight intact. Last it opens the accessibility page with
+  the bag full and the row pool at its cap: the shake toggle reaches the
+  camera, the distortion switch the HUD, the text step the HUD and the menu's
+  own rows, the colour-blind toggle the HUD and the enemy telegraphs, the file
+  carries exactly the chosen steps, every Sigil line and the Soot label still
+  fit at every step, and the defaults restore. As a side effect the pass found
+  a real bug: the carried-Sigil mark was a ✓ the bundled font does not carry,
+  so it drew as nothing; it is a bullet now.
 - **The main scene:** running `scenes/Main.tscn` headless assembles the game —
   `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0`.
 - **A real APK:** `bash Tools/build-android.sh` produced
-  `build/android/ghasaq.apk` (104,014,046 bytes / 99 MB; final run recorded in
+  `build/android/ghasaq.apk` (104,026,580 bytes / 99 MB; final run recorded in
   `Documentation/Verification.md`) locally, containing
   `lib/arm64-v8a/libgodot_android.so`, `assets/.godot/mono/publish/arm64/Ghasaq.dll`,
   `Ghasaq.Core.dll` and both `.fontdata` files the Arabic Sigil lines draw with,
@@ -164,6 +171,7 @@ The core test suite needs no engine. Godot needs no Android SDK until you export
 | [CameraDecision.md](Documentation/CameraDecision.md) | The camera decision (3/4 tilted top-down) and its readability budget |
 | [Sigils.md](Documentation/Sigils.md) | The five الوَسْم / Sigils and their ثمن / Prices for the slice |
 | [Soot.md](Documentation/Soot.md) | السُّخام / Soot and العَتْمة / Dimming: the meter, the threshold, and the two edges |
+| [Accessibility.md](Documentation/Accessibility.md) | إعدادات الوصولية: the four presentation settings, how they persist, and what they never touch |
 | [assets/fonts/README.md](assets/fonts/README.md) | The bundled UI fonts: why they are vendored, provenance, license |
 | [Plan-v2.md](Documentation/Plan-v2.md) | The approved production plan this repository executes (Arabic) |
 | [Building.md](Documentation/Building.md) | Setup, controls, Android build, troubleshooting |

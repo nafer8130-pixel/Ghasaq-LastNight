@@ -26,8 +26,13 @@ namespace Ghasaq.Game
     /// </summary>
     public partial class CombatantView : Node3D
     {
-        /// <summary>The colour a body warns with while a blow is winding up.</summary>
-        private static readonly Color TelegraphColor = new Color(0.98f, 0.42f, 0.2f);
+        /// <summary>
+        /// The accessibility palette's switch, set by the game root: a body's
+        /// wind-up warning comes from the palette this chooses, so the warning
+        /// survives colour blindness (plan section 6, عمى الألوان). It is
+        /// presentation only, never read by the core.
+        /// </summary>
+        public static bool ColorblindSafe;
 
         /// <summary>How far toward the warning colour a full telegraph blends.</summary>
         private const float TelegraphMix = 0.75f;
@@ -142,7 +147,7 @@ namespace Ghasaq.Game
 
             if (telegraph > 0f)
             {
-                tint = tint.Lerp(TelegraphColor, TelegraphMix * telegraph);
+                tint = tint.Lerp(AccessibilityPalette.Telegraph(ColorblindSafe), TelegraphMix * telegraph);
             }
 
             float t = FlashDuration <= 0f ? 0f : Mathf.Clamp(_flashRemaining / FlashDuration, 0f, 1f);

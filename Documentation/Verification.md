@@ -4,6 +4,77 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## إعدادات الوصولية: accessibility settings (2026-10-04)
+
+The plan's phase-B settings item (§6) is built: one menu page with the four
+settings — reduced camera shake, the Dimming's distortion switch, a text size
+and colour-blind cues — reachable from the main menu in any region, in or out
+of combat (the defeat screen keeps its single row by design).
+Every setting is presentation only; the core never reads one, so nothing on the
+page can change a fight's rules. The page also uncovered and fixed a real bug:
+the Sigils page marked the carried Sigil with U+2713 (✓), a glyph the bundled
+Noto chain does not carry, so the mark drew as nothing at all; it is a bullet
+now, and the smoke test walks every visible menu page at the largest text step
+and measures its live strings against the font and the panel.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **661 passed, 0 failed** (376 ms; no core change in this pass) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** — the new scripts are named in the gate |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 126/126 checks** (78 before; 48 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,026,580 bytes (99 MB), sha256 `2301cd66af9b45bb29504d8b35d61dc03575aeca2571ca875b38f21106d102a0`, signed and verified with `apksigner`; carries `Ghasaq.dll`, `Ghasaq.Core.dll` and both font data files |
+
+New in code:
+
+- `scripts/AccessibilitySettings.cs` — the model: reduced shake (a fifth of the
+  impulse), the distortion flag, three text steps (100/125/150%) with clamping
+  on load, the colour-blind flag. A view-layer type; the core never sees it.
+- `scripts/SettingsStore.cs` — `user://settings.cfg` (`ConfigFile`), per device
+  rather than per save slot. A missing or unreadable file loads the defaults; a
+  stored index out of range is clamped.
+- `scripts/AccessibilityPalette.cs` — the shipped palette and the Okabe-Ito
+  one for health, stamina, the Dimming's fill, damage numbers and the wind-up
+  telegraph, plus the `!` a critical number carries in safe mode so the state
+  is never carried by a hue alone.
+- `scripts/CameraRig.cs` — `ShakeScale` (with a read-only `PendingShake` for
+  the smoke test); impulses scale, hit-stop does not: a held frame is not
+  motion.
+- `scripts/Hud.cs` — `FontScale` scaling every drawn size and the blocks around
+  them (bars, the Sigil card and its advances, objective line, message, damage
+  numbers), the Dimming vignette (`DrawDimmingVignette` over
+  `DimmingVignetteAlpha`, zero below the threshold or when switched off), and
+  the palette calls.
+- `scripts/CombatantView.cs` — the wind-up telegraph now blends toward the
+  palette's warning colour.
+- `scripts/GameRoot.cs` — reads the settings before building the run, applies
+  them to camera/HUD/menu/telegraph, and `CommitSettings` applies-and-saves on
+  every menu press.
+- `scripts/GameMenu.cs` — the accessibility page (four rows, every state said
+  in words, none by colour alone), the main-menu row placed second so the
+  capped row pool can never drop it, menu text scaling, and `RowPool` 16 → 17
+  with the measurement (126/126 checks, longest menu line 937 of 1240 units at
+  150%) that says why.
+- `Tests/Godot/GodotSmoke.cs` — 48 new checks (`CheckAccessibility`): the
+  defaults, the shake scale, the font cycle and clamping, the palette's text
+  and colours, the vignette's four edges, the settings file round-trip, every
+  Sigil line and the Soot label at every text step, and then the live page
+  through the menu: opens with the bag full and the pool at its cap, every
+  glyph draws, each toggle reaches the surface it claims (camera, HUD,
+  telegraph), the menu's own rows grow, the file carries exactly the chosen
+  steps, a second main scene boots on that file and applies it before the run
+  is built, and the defaults restore.
+
+What this pass does not cover: nothing here has been seen on a device. The
+vignette, the palette and the text steps are exercised as arithmetic and
+through the live menu in a headless run, which cannot observe a pixel; whether
+the vignette reads as intended on a phone at night is a device question. The
+settings file itself has only been round-tripped under `user://` on Linux, not
+on Android's storage.
+
 ## سقوط البطل ونهوضه: the defeat loop (2026-10-04)
 
 The last Phase-A gameplay gap on the "playable" list was the one thing the run

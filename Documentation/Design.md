@@ -108,6 +108,15 @@ The return to the camp is the only move that ignores region adjacency — every
 other gate stays, but a lost fight can never strand a run whose way out would
 otherwise be to load a save.
 
+## Accessibility
+
+The plan's accessibility settings (Accessibility.md) are presentation, never
+rules: reduced camera shake, a switch for the Dimming's distortion, a text size
+and colour-blind cues, on one page reachable from the main menu at any time.
+The line the page follows: a setting that changes the fight should not exist,
+and a setting a player needs should not sit behind a safe room, a bag with
+room in it, or a fight that is easy to read without it.
+
 ## Difficulty intent
 
 Scaling down gracefully matters more than pushing a flagship. The design targets

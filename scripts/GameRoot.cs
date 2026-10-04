@@ -88,6 +88,9 @@ namespace Ghasaq.Game
         public PlayerDriver Driver { get; private set; }
         public SaveSlotManager SaveManager { get; private set; }
 
+        /// <summary>The per-device accessibility settings the menu edits and the surfaces below obey (plan section 6).</summary>
+        public AccessibilitySettings Settings { get; private set; }
+
         private PackedScene _playerScene;
         private PackedScene _enemyScene;
 
@@ -127,6 +130,11 @@ namespace Ghasaq.Game
             _menu.Root = this;
             _menu.SetOpen(false);
 
+            // Per device, not per run: an accessibility preference belongs to the
+            // person holding the phone, so it is read before anything is built
+            // and pushed onto every surface the moment it exists.
+            Settings = SettingsStore.Load();
+
             BuildHitSparks();
 
             _playerScene = GD.Load<PackedScene>("res://scenes/Player.tscn");
@@ -147,6 +155,7 @@ namespace Ghasaq.Game
             }
 
             Build();
+            ApplySettings();
 
             SigilDefinition carried = Session.EquippedSigil;
             string carriedId = carried != null ? carried.Id : "none";
@@ -155,6 +164,46 @@ namespace Ghasaq.Game
                 $"{Session.Encounter.HostilesRemaining} hostiles, " +
                 $"{Session.Quests.All.Count} quests, level {Session.Progression.Level}, " +
                 $"sigil '{carriedId}', soot {(Session.Player.Soot != null ? Session.Player.Soot.Soot : 0f):0}");
+        }
+
+        /// <summary>
+        /// Applies a change the accessibility page made and saves it at once:
+        /// the settings file is written on every press, so a choice survives the
+        /// next launch even if the app is killed from inside a fight.
+        /// </summary>
+        public void CommitSettings()
+        {
+            ApplySettings();
+            SettingsStore.Save(Settings);
+        }
+
+        /// <summary>
+        /// Copies the accessibility settings onto the surfaces they change: the
+        /// camera's shake, the HUD's text and colours, the menu's own text and
+        /// the enemies' wind-up warning. Every one of these is presentation;
+        /// the session and its rules never read a line of it.
+        /// </summary>
+        private void ApplySettings()
+        {
+            if (Settings == null)
+            {
+                return;
+            }
+
+            if (_cameraRig != null)
+            {
+                _cameraRig.ShakeScale = Settings.ShakeScale;
+            }
+
+            if (_hud != null)
+            {
+                _hud.FontScale = Settings.FontScale;
+                _hud.DimmingDistortion = Settings.DimmingDistortion;
+                _hud.ColorblindSafe = Settings.ColorblindSafe;
+            }
+
+            _menu?.ApplyFontScale(Settings.FontScale);
+            CombatantView.ColorblindSafe = Settings.ColorblindSafe;
         }
 
         /// <summary>Builds a complete playable session. Safe to call again to restart.</summary>

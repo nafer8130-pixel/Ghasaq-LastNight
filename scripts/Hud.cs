@@ -98,6 +98,51 @@ namespace Ghasaq.Game
         private string _message = "";
         private float _messageTimer;
 
+        private float _fontScale = 1f;
+        private float _vignettePhase;
+
+        /// <summary>
+        /// The text-size multiplier from the accessibility settings (plan
+        /// section 6). It scales the drawn text and the blocks around it, so
+        /// nothing overlaps its neighbour at any step; hit targets are left
+        /// alone, because a thumb's target is not a text size.
+        /// </summary>
+        public float FontScale
+        {
+            get => _fontScale;
+            set => _fontScale = Mathf.Clamp(value, 0.75f, 2f);
+        }
+
+        /// <summary>The Dimming's light visual distortion, on unless switched off in the accessibility settings.</summary>
+        public bool DimmingDistortion { get; set; } = true;
+
+        /// <summary>Swaps the HUD's state colours for the colour-blind-safe palette (plan section 6).</summary>
+        public bool ColorblindSafe { get; set; }
+
+        /// <summary>A base text size at a given scale. Public so the smoke test can hold labels to their bars at every step.</summary>
+        public static int ScaledSize(int baseSize, float scale)
+        {
+            return Mathf.Max(1, Mathf.RoundToInt(baseSize * scale));
+        }
+
+        /// <summary>
+        /// The Dimming's vignette alpha: 0 when the distortion is switched
+        /// off, when the meter is below the threshold, or at the bottom of
+        /// its pulse; otherwise it deepens with the meter and breathes with
+        /// the frame. Public for the smoke test: this arithmetic is exactly
+        /// what the accessibility switch changes (plan section 3.6).
+        /// </summary>
+        public static float DimmingVignetteAlpha(bool enabled, bool isDimming, float dimmingFraction, float pulse)
+        {
+            if (!enabled || !isDimming)
+            {
+                return 0f;
+            }
+
+            float depth = Mathf.Clamp(dimmingFraction, 0f, 1f);
+            return (0.10f + (0.18f * depth)) * Mathf.Lerp(0.7f, 1f, Mathf.Clamp(pulse, 0f, 1f));
+        }
+
         /// <summary>Whether the on-screen controls respond to touches. Off while the menu is open.</summary>
         public bool InputEnabled { get; set; } = true;
 
@@ -161,6 +206,15 @@ namespace Ghasaq.Game
             if (_messageTimer > 0f)
             {
                 _messageTimer -= delta;
+            }
+
+            // The Dimming's vignette breathes; the phase is wrapped so a long
+            // session cannot starve the sine wave.
+            _vignettePhase += delta * 2.4f;
+
+            if (_vignettePhase > Mathf.Tau)
+            {
+                _vignettePhase -= Mathf.Tau;
             }
 
             PollTouches();
@@ -361,6 +415,7 @@ namespace Ghasaq.Game
                 return;
             }
 
+            DrawDimmingVignette();
             DrawVitals();
             DrawExperience();
             DrawAbilityButtons();
@@ -383,18 +438,21 @@ namespace Ghasaq.Game
             float healthFraction = Mathf.Clamp(player.Vitals.HealthFraction, 0f, 1f);
             float staminaFraction = Mathf.Clamp(player.Vitals.StaminaFraction, 0f, 1f);
 
-            float healthY = Margin;
-            float staminaY = Margin + BarHeight + 6f;
+            float barHeight = BarHeight * _fontScale;
+            float gap = 6f * _fontScale;
 
-            DrawBar(Margin, healthY, BarWidth, BarHeight, new Color(0.05f, 0.04f, 0.04f, 0.75f),
-                new Color(0.62f, 0.16f, 0.16f, 0.95f), healthFraction,
+            float healthY = Margin;
+            float staminaY = Margin + barHeight + gap;
+
+            DrawBar(Margin, healthY, BarWidth * _fontScale, barHeight, new Color(0.05f, 0.04f, 0.04f, 0.75f),
+                AccessibilityPalette.HealthFill(ColorblindSafe), healthFraction,
                 Mathf.RoundToInt(player.Vitals.Health) + " / " + Mathf.RoundToInt(player.Vitals.MaxHealth));
 
-            DrawBar(Margin, staminaY, BarWidth * 0.8f, BarHeight, new Color(0.04f, 0.05f, 0.06f, 0.75f),
-                new Color(0.30f, 0.52f, 0.58f, 0.95f), staminaFraction,
+            DrawBar(Margin, staminaY, BarWidth * 0.8f * _fontScale, barHeight, new Color(0.04f, 0.05f, 0.06f, 0.75f),
+                AccessibilityPalette.StaminaFill(ColorblindSafe), staminaFraction,
                 Mathf.RoundToInt(player.Vitals.Stamina) + " / " + Mathf.RoundToInt(player.Vitals.MaxStamina));
 
-            DrawSootBar(player);
+            DrawSootBar(player, barHeight, gap);
         }
 
         /// <summary>
@@ -403,12 +461,11 @@ namespace Ghasaq.Game
         /// body right now. Grey while the bearer is clear, dimming toward red
         /// as the meter climbs, and one word - عَتْمة - the moment the
         /// Dimming begins, so the state is never something the player has to
-        /// infer from the numbers. The optional part of the plan - the light
-        /// visual distortion, which accessibility settings will be able to
-        /// turn off - is not built yet; the bar and the mark carry the state
-        /// until there is a settings screen to switch it off in.
+        /// infer from the numbers. The light visual distortion the plan gates
+        /// on accessibility settings lives in <see cref="DrawDimmingVignette"/>;
+        /// the bar and the mark carry the state whether or not it is on.
         /// </summary>
-        private void DrawSootBar(Combatant player)
+        private void DrawSootBar(Combatant player, float barHeight, float gap)
         {
             SootMeter soot = player.Soot;
             if (soot == null)
@@ -416,26 +473,63 @@ namespace Ghasaq.Game
                 return;
             }
 
-            float y = Margin + (BarHeight + 6f) * 2f;
+            float y = Margin + ((barHeight + gap) * 2f);
             string label = "السُّخام: " + Mathf.RoundToInt(soot.Soot) + " / " + Mathf.RoundToInt(SootTuning.Max);
             Color clear = new Color(0.36f, 0.33f, 0.30f, 0.9f);
             Color fill = clear;
 
             if (soot.IsDimming)
             {
-                fill = clear.Lerp(new Color(0.74f, 0.22f, 0.18f, 0.95f), soot.DimmingFraction);
+                fill = AccessibilityPalette.SootFill(clear, soot.DimmingFraction, ColorblindSafe);
                 label += "    عَتْمة";
             }
 
-            DrawBar(Margin, y, BarWidth * 0.8f, BarHeight,
+            DrawBar(Margin, y, BarWidth * 0.8f * _fontScale, barHeight,
                 new Color(0.04f, 0.04f, 0.05f, 0.75f), fill, soot.Fraction, label);
+        }
+
+        /// <summary>
+        /// The Dimming's light visual distortion (plan section 3.6): a pulsing
+        /// red edge that deepens as the meter fills. One accessibility row
+        /// switches it off; the bar and the word عَتْمة carry the state either
+        /// way, so nothing is lost when it is gone.
+        /// </summary>
+        private void DrawDimmingVignette()
+        {
+            SootMeter soot = _session?.Player?.Soot;
+            float pulse = 0.5f + (0.5f * Mathf.Sin(_vignettePhase));
+            float alpha = DimmingVignetteAlpha(
+                DimmingDistortion,
+                soot != null && soot.IsDimming,
+                soot?.DimmingFraction ?? 0f,
+                pulse);
+
+            if (alpha <= 0.002f)
+            {
+                return;
+            }
+
+            const int Bands = 5;
+            float band = 54f * _fontScale;
+            Color color = new Color(0.42f, 0.06f, 0.08f);
+
+            for (int i = 0; i < Bands; i++)
+            {
+                float inset = band * i;
+                Color bandColor = new Color(color.R, color.G, color.B, alpha * (1f - (i / (float)Bands)));
+
+                DrawRect(new Rect2(inset, inset, Size.X - (inset * 2f), band), bandColor);
+                DrawRect(new Rect2(inset, Size.Y - inset - band, Size.X - (inset * 2f), band), bandColor);
+                DrawRect(new Rect2(inset, inset + band, band, Size.Y - (inset * 2f) - (band * 2f)), bandColor);
+                DrawRect(new Rect2(Size.X - inset - band, inset + band, band, Size.Y - (inset * 2f) - (band * 2f)), bandColor);
+            }
         }
 
         private void DrawBar(float x, float y, float width, float height, Color back, Color fill, float fraction, string label)
         {
             DrawRect(new Rect2(x, y, width, height), back);
             DrawRect(new Rect2(x, y, width * fraction, height), fill);
-            DrawString(_font, new Vector2(x + 8f, y + height - 8f), label, HorizontalAlignment.Left, -1, BarLabelSize, new Color(1f, 1f, 1f, 0.92f));
+            DrawString(_font, new Vector2(x + 8f, y + height - 8f), label, HorizontalAlignment.Left, -1, ScaledSize(BarLabelSize, _fontScale), new Color(1f, 1f, 1f, 0.92f));
         }
 
         private void DrawExperience()
@@ -514,12 +608,12 @@ namespace Ghasaq.Game
                     // surface below.
                     DrawRect(rect, SigilLockedColor, false, 3f);
                     DrawString(_font, new Vector2(rect.Position.X + rect.Size.X - 24f, rect.Position.Y + 24f),
-                        "\u00d7", HorizontalAlignment.Left, -1, 22, SigilLockedColor);
+                        "\u00d7", HorizontalAlignment.Left, -1, ScaledSize(22, _fontScale), SigilLockedColor);
                     textColor = new Color(0.72f, 0.5f, 0.48f);
                 }
 
                 DrawString(_font, new Vector2(rect.Position.X + 8f, rect.Position.Y + rect.Size.Y * 0.5f),
-                    label, HorizontalAlignment.Left, rect.Size.X - 12f, 16, textColor);
+                    label, HorizontalAlignment.Left, rect.Size.X - 12f, ScaledSize(16, _fontScale), textColor);
             }
         }
 
@@ -534,7 +628,7 @@ namespace Ghasaq.Game
             Rect2 rect = MenuButtonRect();
             DrawRect(rect, new Color(0.16f, 0.15f, 0.20f, 0.7f));
             DrawString(_font, new Vector2(rect.Position.X, rect.Position.Y + rect.Size.Y * 0.5f + 8f),
-                "MENU", HorizontalAlignment.Center, rect.Size.X, 20, new Color(0.9f, 0.9f, 0.94f, 0.92f));
+                "MENU", HorizontalAlignment.Center, rect.Size.X, ScaledSize(20, _fontScale), new Color(0.9f, 0.9f, 0.94f, 0.92f));
         }
 
         private void DrawMoveStick()
@@ -582,12 +676,12 @@ namespace Ghasaq.Game
                 float alpha = Mathf.Clamp(1f - (number.Age / DamageNumberLifetime), 0f, 1f);
                 float rise = DamageNumberRise * (number.Age / DamageNumberLifetime);
 
-                Color color = number.Critical
-                    ? new Color(1f, 0.85f, 0.3f, alpha)
-                    : new Color(1f, 0.35f, 0.28f, alpha);
+                Color color = AccessibilityPalette.Damage(number.Critical, ColorblindSafe);
+                color.A = alpha;
 
-                DrawString(_font, new Vector2(screen.X, screen.Y - rise), Mathf.RoundToInt(number.Amount).ToString(),
-                    HorizontalAlignment.Left, -1, number.Critical ? 26 : 20, color);
+                DrawString(_font, new Vector2(screen.X, screen.Y - rise),
+                    AccessibilityPalette.DamageText(number.Amount, number.Critical, ColorblindSafe),
+                    HorizontalAlignment.Left, -1, ScaledSize(number.Critical ? 26 : 20, _fontScale), color);
             }
         }
 
@@ -601,11 +695,11 @@ namespace Ghasaq.Game
                 line += "    POINTS " + _session.Progression.UnspentAttributePoints;
             }
 
-            DrawString(_font, new Vector2(Margin, Margin + (BarHeight + 6f) * 3f + 26f), line,
-                HorizontalAlignment.Left, -1, 18, new Color(0.8f, 0.8f, 0.85f, 0.9f));
+            DrawString(_font, new Vector2(Margin, Margin + ((BarHeight * _fontScale + 6f * _fontScale) * 3f) + (26f * _fontScale)), line,
+                HorizontalAlignment.Left, -1, ScaledSize(18, _fontScale), new Color(0.8f, 0.8f, 0.85f, 0.9f));
 
-            DrawString(_font, new Vector2(Size.X - Margin, Margin + 110f), CurrentObjectiveText(),
-                HorizontalAlignment.Right, 700f, 17, new Color(0.88f, 0.86f, 0.78f, 0.9f));
+            DrawString(_font, new Vector2(Size.X - Margin, Margin + (110f * _fontScale)), CurrentObjectiveText(),
+                HorizontalAlignment.Right, 700f * _fontScale, ScaledSize(17, _fontScale), new Color(0.88f, 0.86f, 0.78f, 0.9f));
         }
 
         private string CurrentObjectiveText()
@@ -654,43 +748,48 @@ namespace Ghasaq.Game
         private void DrawSigilSurface()
         {
             float x = Margin;
-            float y = Margin + (BarHeight + 6f) * 3f + 72f;
+            float y = Margin + ((BarHeight * _fontScale + 6f * _fontScale) * 3f) + (72f * _fontScale);
 
             SigilDefinition sigil = _session?.EquippedSigil;
             Combatant player = _session?.Player;
 
+            float cardWidth = SigilCardWidth * _fontScale;
+            int lineSize = ScaledSize(SigilLineSize, _fontScale);
+            float titleAscent = SigilTitleAscent * _fontScale;
+            float advance = SigilLineAdvance * _fontScale;
+
             if (sigil == null || player == null)
             {
-                DrawString(_font, new Vector2(x, y + SigilTitleAscent), "بلا وَسْم — لا فعل جديد ولا ثمن.",
-                    HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, new Color(0.62f, 0.6f, 0.66f, 0.85f));
+                DrawString(_font, new Vector2(x, y + titleAscent), "بلا وَسْم — لا فعل جديد ولا ثمن.",
+                    HorizontalAlignment.Left, cardWidth, lineSize, new Color(0.62f, 0.6f, 0.66f, 0.85f));
                 return;
             }
 
             string live = LivePriceLine(player, sigil);
             bool hasLive = !string.IsNullOrEmpty(live);
 
-            float titleBaseline = y + SigilTitleAscent;
-            float verbBaseline = titleBaseline + SigilLineAdvance + 4f;
-            float priceBaseline = verbBaseline + SigilLineAdvance;
-            float liveBaseline = priceBaseline + SigilLineAdvance;
+            float titleBaseline = y + titleAscent;
+            float verbBaseline = titleBaseline + advance + 4f;
+            float priceBaseline = verbBaseline + advance;
+            float liveBaseline = priceBaseline + advance;
             float bottom = hasLive ? liveBaseline : priceBaseline;
 
-            DrawRect(new Rect2(x - 12f, y - 12f, SigilCardWidth + 24f, (bottom - y) + 24f),
+            DrawRect(new Rect2(x - 12f, y - 12f, cardWidth + 24f, (bottom - y) + 24f),
                 new Color(0.05f, 0.05f, 0.07f, 0.55f));
 
             DrawString(_font, new Vector2(x, titleBaseline), sigil.DisplayName + "  \u00b7  " + sigil.EnglishName,
-                HorizontalAlignment.Left, SigilCardWidth, (int)SigilTitleSize, new Color(0.93f, 0.88f, 0.72f, 0.96f));
+                HorizontalAlignment.Left, cardWidth, ScaledSize((int)SigilTitleSize, _fontScale), new Color(0.93f, 0.88f, 0.72f, 0.96f));
 
             DrawString(_font, new Vector2(x, verbBaseline), "الفعل: " + sigil.VerbLine,
-                HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, SigilVerbColor);
+                HorizontalAlignment.Left, cardWidth, lineSize, SigilVerbColor);
 
             DrawString(_font, new Vector2(x, priceBaseline), "الثمن: " + sigil.PriceLine,
-                HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, SigilPriceColor);
+                HorizontalAlignment.Left, cardWidth, lineSize, SigilPriceColor);
 
             if (hasLive)
             {
                 DrawString(_font, new Vector2(x, liveBaseline), live,
-                    HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, SigilLiveColor);
+                    HorizontalAlignment.Left, cardWidth, lineSize, SigilLiveColor);
             }
         }
 
@@ -781,8 +880,8 @@ namespace Ghasaq.Game
             }
 
             float alpha = Mathf.Clamp(_messageTimer, 0f, 1f);
-            DrawString(_font, new Vector2(Size.X * 0.5f, 150f), _message,
-                HorizontalAlignment.Center, Size.X, 28, new Color(0.95f, 0.86f, 0.6f, alpha));
+            DrawString(_font, new Vector2(Size.X * 0.5f, 150f * _fontScale), _message,
+                HorizontalAlignment.Center, Size.X, ScaledSize(28, _fontScale), new Color(0.95f, 0.86f, 0.6f, alpha));
         }
     }
 }

@@ -21,7 +21,8 @@ namespace Ghasaq.Tests
     /// resolve, a save must round-trip, the Sigil Price surface must be drawable
     /// - a font with the Arabic glyphs and five authored Price lines - the
     /// Hearth's salvage loop must run from the menu a player actually touches,
-    /// and a fallen bearer must rise back into the run.
+    /// a fallen bearer must rise back into the run, and the accessibility
+    /// settings must reach every surface they claim to change.
     /// Run with:
     ///
     ///     godot --headless --path . res://Tests/Godot/GodotSmoke.tscn
@@ -67,6 +68,7 @@ namespace Ghasaq.Tests
             CheckPrefixDrops();
             CheckHearthMenu();
             CheckDefeatLoop();
+            CheckAccessibility();
 
             if (_failures == 0)
             {
@@ -698,6 +700,433 @@ namespace Ghasaq.Tests
             }
 
             main.QueueFree();
+        }
+
+        // --------------------------------------------------- accessibility ---
+
+        /// <summary>
+        /// The accessibility settings (plan section 6, phase B) through the
+        /// surface a player touches: the four settings exist on their page,
+        /// each press reaches the surface it claims to change, and every
+        /// choice is in the settings file before the next frame. The checks
+        /// also hold the two drawn surfaces to their geometry at every text
+        /// size step, because a setting that breaks its own layout is worse
+        /// than none.
+        /// </summary>
+        private void CheckAccessibility()
+        {
+            var defaults = new AccessibilitySettings();
+            Check(!defaults.ReduceShake && defaults.DimmingDistortion && !defaults.ColorblindSafe
+                && defaults.FontScalePercent == 100,
+                "the accessibility defaults keep the shipped presentation (shake full, distortion on, cues off, 100%)");
+            Check(defaults.ShakeScale == 1f, "the default shake scale passes impulses through");
+
+            defaults.ReduceShake = true;
+            Check(defaults.ShakeScale == AccessibilitySettings.ReducedShakeScale,
+                "the reduced shake scale keeps a fifth of the impulse");
+
+            defaults.CycleFontScale();
+            Check(defaults.FontScalePercent == 125, "the text size steps to 125%");
+            defaults.CycleFontScale();
+            Check(defaults.FontScalePercent == 150, "the text size steps to 150%");
+            defaults.CycleFontScale();
+            Check(defaults.FontScalePercent == 100, "the text size wraps back to 100%");
+
+            defaults.FontScaleIndex = 99;
+            defaults.Normalize();
+            Check(defaults.FontScaleIndex == AccessibilitySettings.FontScaleSteps.Length - 1,
+                "an out-of-range stored text size is clamped to the largest step");
+
+            defaults.FontScaleIndex = -5;
+            defaults.Normalize();
+            Check(defaults.FontScaleIndex == 0, "a negative stored text size clamps back to 100%");
+
+            // The palette: what the colour-blind setting actually changes.
+            Check(AccessibilityPalette.DamageText(12.6f, false, false) == "13"
+                && AccessibilityPalette.DamageText(12.6f, true, false) == "13",
+                "the shipped palette marks a critical with size and colour only");
+            Check(AccessibilityPalette.DamageText(12.6f, true, true) == "13!",
+                "the colour-blind palette adds a shape to the critical number");
+            Check(!AccessibilityPalette.HealthFill(false).IsEqualApprox(AccessibilityPalette.HealthFill(true))
+                && !AccessibilityPalette.StaminaFill(false).IsEqualApprox(AccessibilityPalette.StaminaFill(true))
+                && !AccessibilityPalette.Telegraph(false).IsEqualApprox(AccessibilityPalette.Telegraph(true)),
+                "the colour-blind palette swaps every state colour it owns");
+
+            // The Dimming's distortion and its off switch.
+            Check(Hud.DimmingVignetteAlpha(false, true, 1f, 1f) == 0f,
+                "the distortion switch removes the vignette entirely");
+            Check(Hud.DimmingVignetteAlpha(true, false, 1f, 1f) == 0f,
+                "nothing is drawn below the Dimming's threshold");
+
+            float shallow = Hud.DimmingVignetteAlpha(true, true, 0f, 1f);
+            float deep = Hud.DimmingVignetteAlpha(true, true, 1f, 1f);
+            Check(shallow > 0f && deep > shallow, "the vignette deepens as the meter fills");
+            Check(Hud.DimmingVignetteAlpha(true, true, 1f, 0f) < deep, "the vignette pulses with the frame");
+
+            // The camera's own scale.
+            var probeRig = new CameraRig { ShakeScale = AccessibilitySettings.ReducedShakeScale };
+            probeRig.Shake(1f);
+            Check(Math.Abs(probeRig.PendingShake - AccessibilitySettings.ReducedShakeScale) < 1e-4f,
+                "the camera applies the reduced shake scale to an impulse");
+            probeRig.ShakeScale = 1f;
+            probeRig.Shake(0.5f);
+            Check(Math.Abs(probeRig.PendingShake - 0.5f) < 1e-4f,
+                "full shake passes an impulse through unchanged");
+            probeRig.Free();
+
+            // The file: a missing one loads defaults, a written one carries every option.
+            const string probePath = "user://smoke-accessibility.cfg";
+            DeleteIfPresent(probePath);
+
+            AccessibilitySettings missing = SettingsStore.Load(probePath);
+            Check(!missing.ReduceShake && missing.DimmingDistortion && missing.FontScalePercent == 100,
+                "a missing settings file loads the defaults");
+
+            var written = new AccessibilitySettings
+            {
+                ReduceShake = true,
+                DimmingDistortion = false,
+                ColorblindSafe = true,
+                FontScaleIndex = 2
+            };
+
+            Check(SettingsStore.Save(written, probePath), "the settings file writes");
+
+            AccessibilitySettings loaded = SettingsStore.Load(probePath);
+            Check(loaded.ReduceShake && !loaded.DimmingDistortion && loaded.ColorblindSafe
+                && loaded.FontScalePercent == 150,
+                "every option survives a settings round-trip");
+            DeleteIfPresent(probePath);
+
+            // Every Sigil line still fits the card at every text-size step: the
+            // card and the text scale together, so the fit must hold at all of
+            // them, not just at 100%.
+            Font font = ThemeDB.FallbackFont;
+            List<SigilDefinition> sigils = GameContent.BuildSigils();
+            bool fits = font != null;
+            float[] steps = AccessibilitySettings.FontScaleSteps;
+
+            for (int step = 0; step < steps.Length && fits; step++)
+            {
+                int size = Hud.ScaledSize(Hud.SigilLineSize, steps[step]);
+                float cardWidth = Hud.SigilCardWidth * steps[step];
+
+                for (int i = 0; i < sigils.Count && fits; i++)
+                {
+                    fits = font.GetStringSize("الفعل: " + sigils[i].VerbLine, HorizontalAlignment.Left, -1, size).X <= cardWidth
+                        && font.GetStringSize("الثمن: " + sigils[i].PriceLine, HorizontalAlignment.Left, -1, size).X <= cardWidth;
+                }
+            }
+
+            Check(fits, "every Sigil line still fits the card at every text-size step");
+
+            if (font != null)
+            {
+                string sootLabel = "السُّخام: 100 / 100    عَتْمة";
+                float scaledLabelWidth = font.GetStringSize(sootLabel, HorizontalAlignment.Left, -1,
+                    Hud.ScaledSize(Hud.BarLabelSize, 1.5f)).X;
+
+                Check(scaledLabelWidth <= Hud.BarWidth * 0.8f * 1.5f,
+                    "the Soot bar's longest label still fits the bar at 150%");
+            }
+
+            // The page through the menu a player touches. The file is cleared
+            // first so the scene under test starts from the shipped defaults
+            // even on a machine that ran this smoke test before.
+            DeleteIfPresent(SettingsStore.DefaultPath);
+
+            var scene = GD.Load<PackedScene>("res://scenes/Main.tscn");
+            Check(scene != null, "the main scene loads for the accessibility check");
+
+            if (scene == null)
+            {
+                return;
+            }
+
+            Node main = scene.Instantiate();
+            AddChild(main);
+
+            var root = main as GameRoot;
+            var menu = main.GetNodeOrNull<GameMenu>("UI/GameMenu");
+            var hud = main.GetNodeOrNull<Hud>("UI/Hud");
+            var rig = main.GetNodeOrNull<CameraRig>("CameraRig");
+
+            Check(root != null && root.Session != null && menu != null && hud != null && rig != null,
+                "the main scene arrives wired for the accessibility check");
+
+            if (root == null || menu == null || hud == null || rig == null)
+            {
+                main.QueueFree();
+                return;
+            }
+
+            Check(!root.Settings.ReduceShake && root.Settings.DimmingDistortion
+                && root.Settings.FontScalePercent == 100 && !root.Settings.ColorblindSafe,
+                "a fresh launch starts on the shipped accessibility defaults");
+            Check(rig.ShakeScale == 1f, "the camera starts with full shake");
+
+            // Fill the bag so the main page runs at its row-pool cap: the
+            // accessibility row must still be there, because the players who
+            // need it are not required to sort their inventory first.
+            string[] fullBag =
+            {
+                GameContent.ItemSigilbearersBlade,
+                GameContent.ItemGhasaqEdge,
+                GameContent.ItemAshenPlate,
+                GameContent.ItemEmberRelic,
+                GameContent.ItemSentinelsCore,
+                "emberforged+ember-relic"
+            };
+
+            for (int i = 0; i < fullBag.Length; i++)
+            {
+                root.Session.GrantItem(fullBag[i], 1);
+            }
+
+            menu.SetOpen(true);
+            VBoxContainer rows = menu.GetNode<VBoxContainer>("Panel/VBox/Rows");
+
+            int visibleRows = 0;
+
+            for (int i = 0; i < rows.GetChildCount(); i++)
+            {
+                if (rows.GetChild(i) is Button visible && visible.Visible)
+                {
+                    visibleRows++;
+                }
+            }
+
+            Check(visibleRows == rows.GetChildCount(), "a full bag fills the row pool to its cap");
+
+            Button pageRow = FindRow(rows, "إعدادات الوصولية — ACCESSIBILITY");
+            Check(pageRow != null, "the main page opens the accessibility page (with the bag full and the pool at its cap)");
+
+            if (pageRow == null)
+            {
+                menu.SetOpen(false);
+                main.QueueFree();
+                return;
+            }
+
+            pageRow.EmitSignal(BaseButton.SignalName.Pressed);
+
+            string missingGlyphs = MissingGlyphs(rows);
+            Check(missingGlyphs.Length == 0,
+                "every glyph of the accessibility page draws"
+                + (missingGlyphs.Length == 0 ? "" : " (missing: " + missingGlyphs + ")"));
+
+            Button shakeRow = FindRow(rows, "REDUCE CAMERA SHAKE");
+            Check(shakeRow != null && shakeRow.Text.Contains("OFF"), "the shake row starts at OFF");
+
+            if (shakeRow != null)
+            {
+                shakeRow.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(root.Settings.ReduceShake && rig.ShakeScale == AccessibilitySettings.ReducedShakeScale,
+                    "the shake toggle reaches the camera");
+                Check(FindRow(rows, "REDUCE CAMERA SHAKE")?.Text.Contains("ON") == true,
+                    "the shake row redraws as ON");
+            }
+
+            Button distortionRow = FindRow(rows, "DIMMING DISTORTION");
+            Check(distortionRow != null && distortionRow.Text.Contains("ON"), "the distortion row starts at ON");
+
+            if (distortionRow != null)
+            {
+                distortionRow.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(!root.Settings.DimmingDistortion && !hud.DimmingDistortion,
+                    "the distortion toggle reaches the HUD");
+            }
+
+            Button sizeRow = FindRow(rows, "TEXT SIZE");
+            Check(sizeRow != null && sizeRow.Text.Contains("100%"), "the text-size row starts at 100%");
+
+            if (sizeRow != null)
+            {
+                sizeRow.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(Math.Abs(hud.FontScale - 1.25f) < 1e-4f, "a press moves the HUD text to 125%");
+
+
+                Button scaledRow = FindRow(rows, "TEXT SIZE");
+                Check(scaledRow != null && scaledRow.Text.Contains("125%"),
+                    "the text-size row shows the step it moved to");
+                Check(scaledRow != null
+                    && scaledRow.GetThemeFontSize("font_size") == Hud.ScaledSize(AccessibilitySettings.BaseMenuFontSize, 1.25f),
+                    "the menu's own rows grow with the step");
+            }
+
+            Button colorblindRow = FindRow(rows, "COLOUR-BLIND CUES");
+            Check(colorblindRow != null && colorblindRow.Text.Contains("OFF"),
+                "the colour-blind row starts at OFF");
+
+            if (colorblindRow != null)
+            {
+                colorblindRow.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(root.Settings.ColorblindSafe && hud.ColorblindSafe && CombatantView.ColorblindSafe,
+                    "the colour-blind toggle reaches the HUD and the telegraphs");
+            }
+
+            // The menu itself at the largest text step: a size setting that
+            // pushes a row's words out of the panel would be a feature that
+            // hides the very text it was meant to enlarge. Panels are authored
+            // 1240 units wide in scenes/GameMenu.tscn; the rows are measured
+            // through the live page strings, not a copy of them.
+            Button growRow = FindRow(rows, "TEXT SIZE");
+
+            if (growRow != null)
+            {
+                growRow.EmitSignal(BaseButton.SignalName.Pressed);
+                Check(Math.Abs(hud.FontScale - 1.5f) < 1e-4f, "a second press moves the HUD text to 150%");
+            }
+
+            const float MenuPanelWidth = 1240f;
+            float longest = 0f;
+            string longestText = "";
+            bool sizeRowFits = true;
+
+            sizeRowFits = MeasureMenuRows(rows, font, ref longest, ref longestText);
+
+            Button backRow = FindRow(rows, "BACK");
+            if (backRow != null)
+            {
+                backRow.EmitSignal(BaseButton.SignalName.Pressed);
+                sizeRowFits = MeasureMenuRows(rows, font, ref longest, ref longestText) && sizeRowFits;
+
+                Button sigilRow = FindRow(rows, "SIGIL");
+                if (sigilRow != null)
+                {
+                    sigilRow.EmitSignal(BaseButton.SignalName.Pressed);
+                    sizeRowFits = MeasureMenuRows(rows, font, ref longest, ref longestText) && sizeRowFits;
+
+                    backRow = FindRow(rows, "BACK");
+                    if (backRow != null)
+                    {
+                        backRow.EmitSignal(BaseButton.SignalName.Pressed);
+
+                        Button hearthRow = FindRow(rows, "HEARTH");
+                        if (hearthRow != null)
+                        {
+                            hearthRow.EmitSignal(BaseButton.SignalName.Pressed);
+                            sizeRowFits = MeasureMenuRows(rows, font, ref longest, ref longestText) && sizeRowFits;
+
+                            backRow = FindRow(rows, "BACK");
+                            backRow?.EmitSignal(BaseButton.SignalName.Pressed);
+                        }
+                    }
+                }
+            }
+
+            Check(sizeRowFits && longest <= MenuPanelWidth,
+                "no menu row runs past its panel at 150%");
+            GD.Print($"  info - longest menu line at 150%: {longest:0.#} units against {MenuPanelWidth:0.#}" +
+                (longestText.Length > 0 ? " (\"" + longestText + "\")" : ""));
+
+            Check(FileAccess.FileExists(SettingsStore.DefaultPath), "the toggles land in the settings file");
+
+            AccessibilitySettings reloaded = SettingsStore.Load();
+            Check(reloaded.ReduceShake && !reloaded.DimmingDistortion && reloaded.ColorblindSafe
+                && reloaded.FontScalePercent == 150,
+                "the saved file carries exactly the chosen steps");
+
+            // A relaunch is the point of saving: a second main scene must boot
+            // on the file the first one wrote, with every surface already
+            // changed before the player opens anything.
+            Node secondMain = scene.Instantiate();
+            AddChild(secondMain);
+
+            var secondRoot = secondMain as GameRoot;
+            var secondHud = secondMain.GetNodeOrNull<Hud>("UI/Hud");
+            var secondRig = secondMain.GetNodeOrNull<CameraRig>("CameraRig");
+
+            Check(secondRoot != null && secondHud != null && secondRig != null,
+                "a relaunch arrives wired for the accessibility check");
+
+            if (secondRoot != null && secondHud != null && secondRig != null)
+            {
+                Check(secondRoot.Settings.ReduceShake && !secondRoot.Settings.DimmingDistortion
+                    && secondRoot.Settings.ColorblindSafe && secondRoot.Settings.FontScalePercent == 150,
+                    "a relaunch reads the saved steps before it builds the run");
+                Check(secondRig.ShakeScale == AccessibilitySettings.ReducedShakeScale
+                    && !secondHud.DimmingDistortion && secondHud.ColorblindSafe
+                    && Math.Abs(secondHud.FontScale - 1.5f) < 1e-4f && CombatantView.ColorblindSafe,
+                    "a relaunch applies the saved steps to the camera, HUD and telegraphs");
+            }
+
+            secondMain.QueueFree();
+
+            // Put the device back the way it was and leave no file behind: the
+            // smoke test may run again in the same user directory.
+            root.Settings.ReduceShake = false;
+            root.Settings.DimmingDistortion = true;
+            root.Settings.ColorblindSafe = false;
+            root.Settings.FontScaleIndex = 0;
+            root.CommitSettings();
+
+            Check(rig.ShakeScale == 1f && hud.DimmingDistortion && Math.Abs(hud.FontScale - 1f) < 1e-4f
+                && !CombatantView.ColorblindSafe,
+                "restoring the defaults reaches every surface again");
+            DeleteIfPresent(SettingsStore.DefaultPath);
+
+            menu.SetOpen(false);
+            main.QueueFree();
+        }
+
+        /// <summary>
+        /// Measures every visible row of the current menu page at the size it
+        /// is actually drawn with, keeping the longest line seen. Returns false
+        /// if any line has no glyphs in the font, so one walk proves both fit
+        /// and readability.
+        /// </summary>
+        private static bool MeasureMenuRows(VBoxContainer rows, Font font, ref float longest, ref string longestText)
+        {
+            if (font == null)
+            {
+                return false;
+            }
+
+            bool glyphsPresent = true;
+
+            for (int i = 0; i < rows.GetChildCount(); i++)
+            {
+                if (!(rows.GetChild(i) is Button row) || !row.Visible)
+                {
+                    continue;
+                }
+
+                int size = row.GetThemeFontSize("font_size");
+                string[] lines = row.Text.Split('\n');
+
+                for (int line = 0; line < lines.Length; line++)
+                {
+                    for (int c = 0; c < lines[line].Length; c++)
+                    {
+                        if (!font.HasChar(lines[line][c]))
+                        {
+                            GD.PrintErr("  info - missing glyph U+" + ((int)lines[line][c]).ToString("X4") + " in \"" + lines[line] + "\"");
+                        }
+
+                        glyphsPresent = glyphsPresent && font.HasChar(lines[line][c]);
+                    }
+
+                    float width = font.GetStringSize(lines[line], HorizontalAlignment.Left, -1, size).X;
+
+                    if (width > longest)
+                    {
+                        longest = width;
+                        longestText = lines[line];
+                    }
+                }
+            }
+
+            return glyphsPresent;
+        }
+
+        /// <summary>Removes a user-directory file if it is there; keeps the accessibility checks hermetic.</summary>
+        private static void DeleteIfPresent(string path)
+        {
+            if (FileAccess.FileExists(path))
+            {
+                DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(path));
+            }
         }
 
         /// <summary>

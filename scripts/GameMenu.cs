@@ -28,7 +28,9 @@ namespace Ghasaq.Game
     /// </summary>
     public partial class GameMenu : Control
     {
-        private const int RowPool = 16;
+        // Seventeen rows is the most that still fits the panel at the largest
+        // accessibility text step; the count is a layout fact, not a taste.
+        private const int RowPool = 17;
 
         private sealed class Row
         {
@@ -43,7 +45,8 @@ namespace Ghasaq.Game
             World,
             Hearth,
             Sigils,
-            Saves
+            Saves,
+            Accessibility
         }
 
         public GameRoot Root;
@@ -52,10 +55,12 @@ namespace Ghasaq.Game
         private readonly List<Action> _pendingActions = new List<Action>(RowPool);
 
         private VBoxContainer _rowContainer;
+        private Label _title;
         private Label _status;
         private MenuPage _page = MenuPage.Main;
         private bool _isOpen;
         private float _statusTimer;
+        private float _fontScale = 1f;
 
         private static readonly ExperienceCurve Curve = new ExperienceCurve();
 
@@ -65,6 +70,7 @@ namespace Ghasaq.Game
         {
             Visible = false;
             _rowContainer = GetNode<VBoxContainer>("Panel/VBox/Rows");
+            _title = GetNode<Label>("Panel/VBox/Title");
             _status = GetNode<Label>("Panel/VBox/Status");
 
             for (int i = 0; i < RowPool; i++)
@@ -89,6 +95,26 @@ namespace Ghasaq.Game
         public void Toggle()
         {
             SetOpen(!_isOpen);
+        }
+
+        /// <summary>
+        /// Applies the accessibility text size to the menu's own words. The
+        /// rows keep their heights: a larger font still fits a single line
+        /// inside them, and a menu that changed its hit targets with a text
+        /// setting would be a layout that only works at one size.
+        /// </summary>
+        public void ApplyFontScale(float scale)
+        {
+            _fontScale = Mathf.Clamp(scale, 0.75f, 2f);
+            int size = Mathf.RoundToInt(AccessibilitySettings.BaseMenuFontSize * _fontScale);
+
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                _rows[i].Button.AddThemeFontSizeOverride("font_size", size);
+            }
+
+            _title?.AddThemeFontSizeOverride("font_size", size);
+            _status?.AddThemeFontSizeOverride("font_size", size);
         }
 
         public void SetOpen(bool open)
@@ -195,6 +221,11 @@ namespace Ghasaq.Game
                     AddSaveRows();
                     break;
 
+                case MenuPage.Accessibility:
+                    AddRow("<  BACK", () => GoTo(MenuPage.Main));
+                    AddAccessibilityRows();
+                    break;
+
                 default:
                     AddMainRows();
                     break;
@@ -296,6 +327,14 @@ namespace Ghasaq.Game
 
         private void AddMainRows()
         {
+            // First among the main page's rows, and deliberately so: the row
+            // pool is capped, and a full bag can spend most of it above the
+            // run's pages. An accessibility setting the menu can drop on a
+            // full bag is one the players who need it could not open when
+            // they need it.
+            AddRow("إعدادات الوصولية — ACCESSIBILITY", () => GoTo(MenuPage.Accessibility),
+                new Color(0.78f, 0.84f, 0.95f));
+
             AddHeader("EQUIPPED");
 
             for (int i = 0; i < EquipSlots.All.Length; i++)
@@ -789,7 +828,11 @@ namespace Ghasaq.Game
         {
             bool current = carried != null && string.Equals(carried.Id, sigil.Id, StringComparison.Ordinal);
 
-            string label = sigil.DisplayName + "  \u00b7  " + sigil.EnglishName + (current ? "   \u2713" : "") +
+            // The carried mark is a bullet, not a check mark: the bundled Noto
+            // chain has no U+2713, so a check mark would draw as nothing at
+            // all (the same reason the smoke test measures every drawn line
+            // against the font rather than trusting the string).
+            string label = sigil.DisplayName + "  \u00b7  " + sigil.EnglishName + (current ? "   \u2022" : "") +
                 "\nالثمن: " + sigil.PriceLine;
 
             SigilDefinition captured = sigil;
@@ -822,6 +865,70 @@ namespace Ghasaq.Game
                 case SigilEquipFailure.NotAtHearth: return "الموقد في المخيّم (الجمرة الأخيرة) — لا هاهنا.";
                 default: return "تعذّر تبديل الوَسْم.";
             }
+        }
+
+        // ------------------------------ accessibility -----------------------------
+
+        /// <summary>
+        /// The accessibility settings (plan section 6, phase B): reduced camera
+        /// shake, the Dimming's distortion switch, a text size and colour-blind
+        /// cues.
+        ///
+        /// Every row here changes presentation and nothing else - no rule of
+        /// the fight is reachable from this page - and each press is saved at
+        /// once, because a setting a player needed is not something they should
+        /// have to remember to confirm. The page opens from the main menu at
+        /// any time and anywhere, unlike the Hearth's bench: an accessibility
+        /// setting that demanded a safe room would be one the players who need
+        /// it could not reach when they need it.
+        /// </summary>
+        private void AddAccessibilityRows()
+        {
+            AccessibilitySettings settings = Root.Settings;
+
+            AddHeader("إعدادات الوصولية — ACCESSIBILITY");
+            AddNote("تُغيّر العرض فقط، لا قواعد القتال — وتُحفظ فور ضغطها.");
+
+            AddRow(
+                SettingLabel("تقليل اهتزاز الكاميرا — REDUCE CAMERA SHAKE", settings.ReduceShake),
+                () => ChangeSetting(option => option.ReduceShake = !option.ReduceShake),
+                new Color(0.82f, 0.88f, 0.94f));
+
+            AddRow(
+                SettingLabel("تشويش العَتْمة — DIMMING DISTORTION", settings.DimmingDistortion),
+                () => ChangeSetting(option => option.DimmingDistortion = !option.DimmingDistortion),
+                new Color(0.88f, 0.8f, 0.72f));
+
+            AddRow(
+                "حجم الخط — TEXT SIZE:  " + settings.FontScalePercent + "%   (اضغط للتبديل)",
+                () => ChangeSetting(option => option.CycleFontScale()),
+                new Color(0.86f, 0.9f, 0.84f));
+
+            AddRow(
+                SettingLabel("عمى الألوان — COLOUR-BLIND CUES", settings.ColorblindSafe),
+                () => ChangeSetting(option => option.ColorblindSafe = !option.ColorblindSafe),
+                new Color(0.88f, 0.86f, 0.72f));
+
+            AddNote("التقليل يُبقي خُمس اهتزاز الكاميرا؛ ضربة الوَقفة لا تتأثر — الوقفة ليست حركة.");
+        }
+
+        /// <summary>ON / OFF as the row's own words, so the state is read, not inferred from a colour.</summary>
+        private static string SettingLabel(string label, bool on)
+        {
+            return label + ":  " + (on ? "ON" : "OFF");
+        }
+
+        /// <summary>Applies one accessibility change, saves it and redraws the page with its new state.</summary>
+        private void ChangeSetting(Action<AccessibilitySettings> change)
+        {
+            if (Root?.Settings == null)
+            {
+                return;
+            }
+
+            change(Root.Settings);
+            Root.CommitSettings();
+            Rebuild();
         }
 
         private void AddSaveRows()
