@@ -74,6 +74,9 @@ Both workflows ran on GitHub for the change, on `2bb7dc9`:
 | `ci.yml` | CI #19 | **success** — naming gate, purity, the 646 tests, layout, build, smoke (58 checks) |
 | `android.yml` | Android ARM64 #19 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
 
+The clamp test that pinned the ledger against a hand-edited save followed as
+CI #21 and Android ARM64 #21 on `fff57c6` (647 core tests), both **success**.
+
 ## The Reliquary's dismantling and the Hearth page (2026-10-04)
 
 The first half of plan §3.3 lands: gear held in the bag breaks down at the
