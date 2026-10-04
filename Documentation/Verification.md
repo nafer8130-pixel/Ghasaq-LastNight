@@ -17,7 +17,7 @@ deliberately unbuilt — [Reliquary.md](Reliquary.md) states what is and is not.
 | --- | --- | --- |
 | Naming gate | `bash Tools/check-naming.sh` | **Pass** |
 | Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
-| Core test suite | `bash Tools/test-core.sh` | **646 passed, 0 failed** (325 ms; 633 before this change, 13 new) |
+| Core test suite | `bash Tools/test-core.sh` | **647 passed, 0 failed** (466 ms; 633 before this change, 14 new) |
 | Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
 | Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
 | Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 58/58 checks** (50 before; 8 new) |
@@ -46,10 +46,11 @@ New in code:
 - `scripts/GameMenu.cs` — the Hearth page's forging section (worn pieces first,
   four rows) above the dismantling section; `Describe` appends `[طَرْق N]` to a
   piece that has levels.
-- Thirteen core tests (`ForgeTests` plus `TrySpend` in `SootBankTests`) and three
-  assertions in `SaveSystemTests` — the costs and bonuses, the loop, the stat
-  re-application on worn gear, every refusal, clearing on dismantle, and the
-  save round-trip with the worn bonus restored.
+- Fourteen core tests (`ForgeTests` plus `TrySpend` in `SootBankTests`) and
+  three assertions in `SaveSystemTests` — the costs and bonuses, the loop, the
+  stat re-application on worn gear, every refusal, clearing on dismantle, the
+  ledger's clamps against a hand-edited save, and the save round-trip with the
+  worn bonus restored.
 - Eight smoke checks — five for the core forge (refused away from the camp,
   12 Soot buys level 1, 24 is refused with 3 in the bank, the save round-trips
   the ledger) and three driving the menu's forging row through its own button

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Ghasaq.Core.Ai;
 using Ghasaq.Core.Combat;
 using Ghasaq.Core.Content;
@@ -55,6 +56,33 @@ namespace Ghasaq.Core.Tests.Items
             Assert.Equal(StatId.AttackPower, ForgeTuning.BonusStat(ItemKind.Weapon));
             Assert.Equal(StatId.Armor, ForgeTuning.BonusStat(ItemKind.Armor));
             Assert.Equal(StatId.GhasaqPower, ForgeTuning.BonusStat(ItemKind.Relic));
+        }
+
+        [Fact]
+        public void Levels_ClampIntoTheLegalRange_AndEmptyEntriesAreIgnored()
+        {
+            var forge = new ItemForge();
+
+            forge.SetLevel("blade", 99);
+            Assert.Equal(ForgeTuning.MaxLevel, forge.LevelOf("blade"));
+
+            forge.SetLevel("blade", -3);
+            Assert.Equal(0, forge.LevelOf("blade"));
+
+            // A hand-edited save must not make a piece stronger than the table
+            // allows; empty or negative entries are skipped.
+            forge.LoadFrom(new List<ItemStack>
+            {
+                new ItemStack("edge", 99),
+                new ItemStack("relic", -4),
+                new ItemStack("", 2),
+                new ItemStack("ash", 0)
+            });
+
+            Assert.Equal(ForgeTuning.MaxLevel, forge.LevelOf("edge"));
+            Assert.Equal(0, forge.LevelOf("relic"));
+            Assert.Equal(0, forge.LevelOf("ash"));
+            Assert.Single(forge.ToStacks());
         }
 
         // -------------------------------- the loop --------------------------------

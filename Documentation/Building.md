@@ -149,7 +149,7 @@ Two workflows:
 
 | Workflow | When | What it does |
 | --- | --- | --- |
-| **`ci.yml`** | Every push and pull request | The Godot gates: naming gate, core purity, 646 core tests, project layout, C# build, headless smoke test. |
+| **`ci.yml`** | Every push and pull request | The Godot gates: naming gate, core purity, 647 core tests, project layout, C# build, headless smoke test. |
 | **`android.yml`** | Pushes to `main` and manual dispatch | Installs Godot + export templates + the Android SDK, exports the ARM64 APK, and classifies the outcome. |
 
 There are **no engine licence secrets** anywhere — Godot and its export templates
