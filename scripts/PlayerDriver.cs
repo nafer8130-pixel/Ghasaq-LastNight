@@ -1,9 +1,9 @@
 using Godot;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Simulation;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Simulation;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// Camera-relative movement input, ported from the project's earlier player
@@ -13,7 +13,7 @@ namespace Shadowbound.Game
     /// cannot tell this apart from the enemy brain, which is why the player and
     /// the enemies move through exactly the same code path.
     ///
-    /// Movement is camera-relative: pushing forward moves the Warden away from the
+    /// Movement is camera-relative: pushing forward moves the Sigilbearer away from the
     /// camera, not along a fixed world axis. Facing is left to the core, which
     /// turns the combatant toward its movement direction.
     /// </summary>

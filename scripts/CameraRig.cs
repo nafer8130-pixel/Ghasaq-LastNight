@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// Third-person follow camera.
@@ -10,7 +10,7 @@ namespace Shadowbound.Game
     /// layer needs the camera's facing to decide what "forward" means. Keeping the
     /// angles in one place stops the two from disagreeing.
     ///
-    /// It pushes in when arena geometry intrudes between the camera and the Warden
+    /// It pushes in when arena geometry intrudes between the camera and the Sigilbearer
     /// (a Godot space-state ray query) and recentres on a smoothed target, so the
     /// view does not judder against the step of a fixed-timestep simulation.
     /// </summary>

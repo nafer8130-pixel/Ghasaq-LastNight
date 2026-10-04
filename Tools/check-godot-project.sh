@@ -41,21 +41,21 @@ else
         fail "project.godot does not lock the handheld orientation to Landscape"
     fi
 
-    if ! grep -q 'project/assembly_name="Shadowbound"' "$ROOT/project.godot"; then
-        fail "project.godot does not name the Shadowbound C# assembly"
+    if ! grep -q 'project/assembly_name="Ghasaq"' "$ROOT/project.godot"; then
+        fail "project.godot does not name the Ghasaq C# assembly"
     fi
 fi
 
 # -----------------------------------------------------------------------------
 # 2. C# project and the presentation scripts.
 # -----------------------------------------------------------------------------
-if [ ! -f "$ROOT/Shadowbound.csproj" ]; then
-    fail "Shadowbound.csproj is missing"
+if [ ! -f "$ROOT/Ghasaq.csproj" ]; then
+    fail "Ghasaq.csproj is missing"
 fi
 
 # Godot's .NET Android export needs the solution to bundle the assembly.
-if [ ! -f "$ROOT/Shadowbound.sln" ]; then
-    fail "Shadowbound.sln is missing (Godot's .NET export requires it)"
+if [ ! -f "$ROOT/Ghasaq.sln" ]; then
+    fail "Ghasaq.sln is missing (Godot's .NET export requires it)"
 fi
 
 # The core and the test harness are a library and a harness, not game resources.
@@ -100,16 +100,16 @@ else
         fail "export_presets.cfg does not build for Android ARM64 (arm64-v8a)"
     fi
 
-    if ! grep -q 'package/unique_name="com.shadowbound.thelastnight"' "$ROOT/export_presets.cfg"; then
-        fail "export_presets.cfg does not use the com.shadowbound.thelastnight package"
+    if ! grep -q 'package/unique_name="com.ghasaq.thelastnight"' "$ROOT/export_presets.cfg"; then
+        fail "export_presets.cfg does not use the com.ghasaq.thelastnight package"
     fi
 fi
 
 # -----------------------------------------------------------------------------
 # 5. No engine leftovers from the migrations this project has been through.
 # -----------------------------------------------------------------------------
-if [ -e "$ROOT/Shadowbound.uproject" ] || [ -d "$ROOT/Source" ] || [ -d "$ROOT/Config" ]; then
-    fail "Unreal leftovers are still present (Shadowbound.uproject / Source/ / Config/)"
+if [ -e "$ROOT/Ghasaq.uproject" ] || [ -d "$ROOT/Source" ] || [ -d "$ROOT/Config" ]; then
+    fail "Unreal leftovers are still present (Ghasaq.uproject / Source/ / Config/)"
 fi
 
 for leftover in Assets Packages ProjectSettings Library; do

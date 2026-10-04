@@ -1,9 +1,9 @@
 using Godot;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
-    /// The Warden's body.
+    /// The Sigilbearer's body.
     ///
     /// A view, not a simulation: position and facing are copied from the core
     /// combatant every step, and input is turned into a CombatIntent by

@@ -1,14 +1,14 @@
 using System;
 using Godot;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Content;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Progression;
-using Shadowbound.Core.Randomness;
-using Shadowbound.Core.Serialization;
-using Shadowbound.Core.Simulation;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Content;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Progression;
+using Ghasaq.Core.Randomness;
+using Ghasaq.Core.Serialization;
+using Ghasaq.Core.Simulation;
 
-namespace Shadowbound.Tests
+namespace Ghasaq.Tests
 {
     /// <summary>
     /// A headless end-to-end check that runs inside Godot.
@@ -140,13 +140,13 @@ namespace Shadowbound.Tests
 
             // The driver above is deliberately naive (it charges every hostile at
             // once), so the meaningful invariant is that the encounter reached a
-            // conclusion, not that the Warden won.
+            // conclusion, not that the Sigilbearer won.
             Check(!session.Player.IsAlive || session.Encounter.HostilesRemaining == 0,
                 "the opening fight reached a conclusion");
-            Check(session.Player.Vitals.Health < session.Player.Vitals.MaxHealth, "the Warden took damage");
+            Check(session.Player.Vitals.Health < session.Player.Vitals.MaxHealth, "the Sigilbearer took damage");
             Check(session.Progression.TotalExperience > 0, "defeats granted experience");
 
-            GD.Print($"  info - outcome: hostiles {session.Encounter.HostilesRemaining}, warden alive {session.Player.IsAlive}, xp {session.Progression.TotalExperience}");
+            GD.Print($"  info - outcome: hostiles {session.Encounter.HostilesRemaining}, sigilbearer alive {session.Player.IsAlive}, xp {session.Progression.TotalExperience}");
         }
 
         private static void SpawnRegion(GameSession session, string regionId)

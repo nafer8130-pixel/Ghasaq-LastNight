@@ -1,7 +1,7 @@
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Randomness;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Randomness;
 
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>One incoming attack, before any mitigation is resolved.</summary>
     public readonly struct DamageRequest

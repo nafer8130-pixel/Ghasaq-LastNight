@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Shadowbound.Core.Serialization
+namespace Ghasaq.Core.Serialization
 {
     /// <summary>
     /// Upgrades older save files to the current format.

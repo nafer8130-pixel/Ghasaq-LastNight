@@ -1,7 +1,12 @@
-# SHADOWBOUND: THE LAST NIGHT
+# غَسَق: الليلة الأخيرة — GHASAQ: THE LAST NIGHT
 
 An original dark-fantasy 3D action RPG for Android. Third-person, real-time
 combat, semi-open world, story-driven PvE.
+
+The internal name — code, packages and files — is `ghasaq`. The naming contract
+(the system dictionary and the retired words) is
+[Documentation/Naming.md](Documentation/Naming.md), enforced by
+`bash Tools/check-naming.sh`.
 
 > **Original work.** Inspired by the broad atmosphere and design principles of
 > the dark-fantasy genre. All characters, factions, creatures, regions,
@@ -20,7 +25,7 @@ ARM64** (target API 35, landscape). This repository *is* the Godot project:
 The project has been migrated twice: **Unity 6 → Unreal Engine 5 → Godot 4.5**.
 The game's rules were always engine-free, so each migration has been a re-hosting
 of the presentation and input layers rather than a rewrite of the game. The
-Unreal layer (`Shadowbound.uproject`, `Source/`, `Config/`) is gone; the original
+Unreal layer (`Ghasaq.uproject`, `Source/`, `Config/`) is gone; the original
 Unity folders (`Assets/`, `Packages/`, `ProjectSettings/`) are gone too.
 
 ---
@@ -42,18 +47,20 @@ installed beyond Godot itself:
 
 - **The game rules:** `bash Tools/test-core.sh` compiles the real core sources and
   runs **563 tests**.
-- **The Godot assembly:** `bash Tools/test-godot.sh` builds `Shadowbound.csproj`,
+- **The Godot assembly:** `bash Tools/test-godot.sh` builds `Ghasaq.csproj`,
   imports the project, and runs a headless smoke test **inside Godot** that proves
   the deterministic RNG parity, boots a session, resolves a real fight and
   round-trips a save.
 - **The main scene:** running `scenes/Main.tscn` headless assembles the game —
-  `Shadowbound ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1`.
+  `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1`.
 - **A real APK:** `bash Tools/build-android.sh` produced
-  `build/android/shadowbound.apk` (98 MB) locally, containing
-  `lib/arm64-v8a/libgodot_android.so`, `assets/.godot/mono/publish/arm64/Shadowbound.dll`
-  and `Shadowbound.Core.dll`, with `package=com.shadowbound.thelastnight`,
-  `targetSdkVersion=35` and `screenOrientation=landscape`, signed by Godot's debug
-  keystore and verified with `apksigner`.
+  `build/android/ghasaq.apk` (103,542,168 bytes / 98 MB; final run after the naming
+  change below) locally, containing
+  `lib/arm64-v8a/libgodot_android.so`, `assets/.godot/mono/publish/arm64/Ghasaq.dll`
+  and `Ghasaq.Core.dll`, with `package=com.ghasaq.thelastnight`, the launcher label
+  `غَسَق: الليلة الأخيرة`, `targetSdkVersion=35` and `screenOrientation=landscape`,
+  signed by Godot's debug keystore and verified with `apksigner`. It has still
+  never been installed on a physical device.
 
 What is **not** verified: the APK has not been installed on a physical device, and
 the GitHub Actions workflow has not yet run on GitHub (it was validated by running
@@ -64,6 +71,7 @@ run and what was not.
 
 ```bash
 bash Tools/check-core-purity.sh   # the core must stay engine-free (Godot/Unity/Unreal)
+bash Tools/check-naming.sh        # no retired identifier from the earlier identity remains
 bash Tools/test-core.sh           # purity gate + 563 core tests
 bash Tools/check-godot-project.sh # the Godot project layout is complete and engine-clean
 bash Tools/test-godot.sh          # build the C# assembly + headless smoke test
@@ -77,15 +85,15 @@ bash Tools/build-android.sh       # export the Android ARM64 APK (needs Godot + 
 ```
 project.godot            the Godot project descriptor (landscape, C#)
 export_presets.cfg       the Android ARM64 export preset
-Shadowbound.csproj       the Godot C# assembly (references the core)
-Shadowbound.sln          required by Godot's .NET export to bundle the assembly
+Ghasaq.csproj       the Godot C# assembly (references the core)
+Ghasaq.sln          required by Godot's .NET export to bundle the assembly
 icon.svg                 the project icon
 scenes/                  authored scenes: Main, Arena, Player, Enemy, Hud, GameMenu
 scripts/                 the Godot game layer (C#): views, camera, input, HUD, menu, saves
 Core/                    the engine-free C# game rules (the source of truth)
 Tests/
-  Shadowbound.Core.Tests/  xUnit suite for the core (563 tests)
-  Shadowbound.Core.Build/  compiles Core/ as a portable netstandard2.1 library
+  Ghasaq.Core.Tests/  xUnit suite for the core (563 tests)
+  Ghasaq.Core.Build/  compiles Core/ as a portable netstandard2.1 library
   Godot/                   the headless Godot smoke test
 Tools/                   command-line verification and build scripts
 Documentation/           architecture, design, building, verification status
@@ -131,5 +139,7 @@ The core test suite needs no engine. Godot needs no Android SDK until you export
 | --- | --- |
 | [Architecture.md](Documentation/Architecture.md) | Module boundaries, the engine-free core, simulation model, determinism, coordinate conversion |
 | [Design.md](Documentation/Design.md) | The original world, factions, creatures and abilities |
+| [Naming.md](Documentation/Naming.md) | The naming contract: identity, the system dictionary, the retired words, the gate |
+| [Plan-v2.md](Documentation/Plan-v2.md) | The approved production plan this repository executes (Arabic) |
 | [Building.md](Documentation/Building.md) | Setup, controls, Android build, troubleshooting |
 | [Verification.md](Documentation/Verification.md) | **What has been executed and verified, and what has not** |

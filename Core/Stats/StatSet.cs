@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Shadowbound.Core.Stats
+namespace Ghasaq.Core.Stats
 {
     /// <summary>
     /// Base values plus a modifier stack, resolved on demand.

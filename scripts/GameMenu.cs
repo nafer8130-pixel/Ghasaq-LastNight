@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Godot;
-using Shadowbound.Core.Content;
-using Shadowbound.Core.Items;
-using Shadowbound.Core.Progression;
-using Shadowbound.Core.Serialization;
-using Shadowbound.Core.Stats;
-using Shadowbound.Core.World;
+using Ghasaq.Core.Content;
+using Ghasaq.Core.Items;
+using Ghasaq.Core.Progression;
+using Ghasaq.Core.Serialization;
+using Ghasaq.Core.Stats;
+using Ghasaq.Core.World;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// The in-game menu: equipment, attributes, travel and saves.
@@ -122,7 +122,7 @@ namespace Shadowbound.Game
             _status.Modulate = color;
 
             _statusTimer = 4f;
-            GD.Print("Shadowbound menu: " + message);
+            GD.Print("Ghasaq menu: " + message);
         }
 
         // --------------------------------- rows ----------------------------------

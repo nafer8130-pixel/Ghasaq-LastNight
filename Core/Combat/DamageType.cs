@@ -1,4 +1,4 @@
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>
     /// Damage schools in the game's original cosmology.
@@ -9,8 +9,8 @@ namespace Shadowbound.Core.Combat
         /// <summary>Steel and impact. The baseline school.</summary>
         Physical = 0,
 
-        /// <summary>Umbra. The player's primary offensive school.</summary>
-        Shadow = 1,
+        /// <summary>Ghasaq. The player's primary offensive school.</summary>
+        Ghasaq = 1,
 
         /// <summary>Fire and burning light.</summary>
         Ember = 2,
@@ -29,7 +29,7 @@ namespace Shadowbound.Core.Combat
         public static readonly DamageType[] All =
         {
             DamageType.Physical,
-            DamageType.Shadow,
+            DamageType.Ghasaq,
             DamageType.Ember,
             DamageType.Frost,
             DamageType.Vital
@@ -40,7 +40,7 @@ namespace Shadowbound.Core.Combat
             switch (type)
             {
                 case DamageType.Physical: return "Physical";
-                case DamageType.Shadow: return "Umbra";
+                case DamageType.Ghasaq: return "Ghasaq";
                 case DamageType.Ember: return "Ember";
                 case DamageType.Frost: return "Frost";
                 case DamageType.Vital: return "Vital";

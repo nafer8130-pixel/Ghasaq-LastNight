@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Godot;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Items;
-using Shadowbound.Core.Progression;
-using Shadowbound.Core.Quests;
-using Shadowbound.Core.Simulation;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Items;
+using Ghasaq.Core.Progression;
+using Ghasaq.Core.Quests;
+using Ghasaq.Core.Simulation;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// The heads-up display and the on-screen controls, drawn directly with

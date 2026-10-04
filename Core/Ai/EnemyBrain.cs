@@ -1,9 +1,9 @@
 using System;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Randomness;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Randomness;
 
-namespace Shadowbound.Core.Ai
+namespace Ghasaq.Core.Ai
 {
     /// <summary>
     /// What an enemy is currently doing. Read by the Unity layer for animation

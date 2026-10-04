@@ -1,5 +1,5 @@
 # ==============================================================================
-# SHADOWBOUND: THE LAST NIGHT - Git ignore
+# GHASAQ: THE LAST NIGHT - Git ignore
 # Godot 4.5 is the engine. This ignores what Godot, the .NET build and the
 # Android export generate. The old Unity and Unreal folders are gone.
 # ==============================================================================
@@ -25,7 +25,7 @@ export_credentials.cfg
 *.jks
 
 # ------------------------------ .NET / test harness ---------------------------
-# NOTE: Shadowbound.csproj, Shadowbound.sln and the Tests/ csproj files are
+# NOTE: Ghasaq.csproj, Ghasaq.sln and the Tests/ csproj files are
 # committed: Godot's .NET export requires the solution to bundle the assembly.
 Tests/**/bin/
 Tests/**/obj/

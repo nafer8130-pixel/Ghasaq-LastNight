@@ -1,7 +1,7 @@
 using Godot;
-using Shadowbound.Core.Numerics;
+using Ghasaq.Core.Numerics;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// The boundary between the engine-free core and Godot.

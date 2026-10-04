@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// The arena: floor, walls, line-of-sight pillars and the gate marker.

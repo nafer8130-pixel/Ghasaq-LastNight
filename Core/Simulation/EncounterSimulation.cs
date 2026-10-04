@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Ai;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Randomness;
+using Ghasaq.Core.Ai;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Randomness;
 
-namespace Shadowbound.Core.Simulation
+namespace Ghasaq.Core.Simulation
 {
     /// <summary>A rectangular slice of world an encounter happens inside.</summary>
     public readonly struct WorldBounds

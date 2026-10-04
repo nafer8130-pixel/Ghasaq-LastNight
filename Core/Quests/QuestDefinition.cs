@@ -1,7 +1,7 @@
 using System;
-using Shadowbound.Core.Items;
+using Ghasaq.Core.Items;
 
-namespace Shadowbound.Core.Quests
+namespace Ghasaq.Core.Quests
 {
     /// <summary>What kind of action advances an objective.</summary>
     public enum ObjectiveKind

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Stats;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Stats;
 
-namespace Shadowbound.Core.Items
+namespace Ghasaq.Core.Items
 {
     /// <summary>Equipment positions on the character.</summary>
     public enum EquipSlot

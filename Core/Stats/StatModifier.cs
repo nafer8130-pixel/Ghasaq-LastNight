@@ -1,6 +1,6 @@
 using System;
 
-namespace Shadowbound.Core.Stats
+namespace Ghasaq.Core.Stats
 {
     /// <summary>How a modifier combines with the others applied to the same stat.</summary>
     public enum ModifierOp

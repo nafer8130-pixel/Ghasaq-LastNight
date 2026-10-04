@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 
-namespace Shadowbound.Core.Serialization
+namespace Ghasaq.Core.Serialization
 {
     /// <summary>
     /// Somewhere save data can live.
     ///
     /// Abstracted so the core can load and save without knowing about files,
-    /// player preferences or a cloud service. The core ships an in-memory
+    /// player preferences or a cloud service. The core ships an in-process
     /// implementation for tests, and the Unity layer supplies a real one.
     /// </summary>
     public interface ISaveStorage
@@ -25,7 +25,7 @@ namespace Shadowbound.Core.Serialization
     }
 
     /// <summary>Storage that lives only as long as the process. Used by tests.</summary>
-    public sealed class InMemorySaveStorage : ISaveStorage
+    public sealed class InProcessSaveStorage : ISaveStorage
     {
         private readonly Dictionary<string, string> _slots =
             new Dictionary<string, string>(StringComparer.Ordinal);

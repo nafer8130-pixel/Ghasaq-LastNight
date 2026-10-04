@@ -1,6 +1,6 @@
 using System;
 
-namespace Shadowbound.Core.Numerics
+namespace Ghasaq.Core.Numerics
 {
     /// <summary>
     /// Engine-independent math helpers.

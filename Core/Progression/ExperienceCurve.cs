@@ -1,6 +1,6 @@
 using System;
 
-namespace Shadowbound.Core.Progression
+namespace Ghasaq.Core.Progression
 {
     /// <summary>
     /// Maps experience to levels.

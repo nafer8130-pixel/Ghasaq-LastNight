@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Randomness;
-using Shadowbound.Core.Stats;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Randomness;
+using Ghasaq.Core.Stats;
 
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>
     /// Turns a landed ability into actual hits: picks targets, rolls damage and
@@ -176,7 +176,7 @@ namespace Shadowbound.Core.Combat
                 return DamageResult.None;
             }
 
-            StatId powerStat = ability.UsesShadowPower ? StatId.ShadowPower : StatId.AttackPower;
+            StatId powerStat = ability.UsesGhasaqPower ? StatId.GhasaqPower : StatId.AttackPower;
             float baseDamage = attacker.Stats.Get(powerStat) * ability.DamageMultiplier;
 
             var request = new DamageRequest(

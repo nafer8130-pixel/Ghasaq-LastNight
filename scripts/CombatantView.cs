@@ -1,8 +1,8 @@
 using System;
 using Godot;
-using Shadowbound.Core.Combat;
+using Ghasaq.Core.Combat;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// Mirrors one core <see cref="Combatant"/> onto a Godot node.

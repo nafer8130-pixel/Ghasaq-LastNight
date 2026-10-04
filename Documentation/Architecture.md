@@ -20,7 +20,7 @@ input layers instead of rewriting the game.
 Core/                 the engine-free C# rules (all systems — the source of truth)
 scripts/              the Godot game layer (C#): views, camera, input, HUD, menu, saves
 scenes/               the authored Godot scenes
-Shadowbound.csproj    compiles scripts/ and references the core
+Ghasaq.csproj    compiles scripts/ and references the core
 ```
 
 The core is written in C#, which Godot runs directly (Godot 4 supports C# on
@@ -40,12 +40,12 @@ attribute. The core depends only on the .NET base class library, which is what l
 The Godot layer may reference the core. The core references upward to nothing.
 
 ```
-  Shadowbound  (Godot C#: scripts/, scenes/)  --->  Shadowbound.Core  (engine-free C#)
+  Ghasaq  (Godot C#: scripts/, scenes/)  --->  Ghasaq.Core  (engine-free C#)
 ```
 
 ## The simulation model
 
-`Shadowbound.Core.Simulation.EncounterSimulation` is a fixed-timestep loop. Fixed,
+`Ghasaq.Core.Simulation.EncounterSimulation` is a fixed-timestep loop. Fixed,
 not variable, because combat tuning is expressed in seconds and a variable step
 makes the same input produce different outcomes on a fast and a slow device. Godot
 runs the step from `_PhysicsProcess`, so each physics tick advances the simulation
@@ -75,7 +75,7 @@ return a `CombatIntent`. The simulation cannot tell them apart. This is why:
 
 `CombatantView` copies the core's position and facing onto its node every physics
 step and never assigns them back. Its node carries no collision body, because a
-physics body would be a second, conflicting authority over where the Warden is.
+physics body would be a second, conflicting authority over where the Sigilbearer is.
 Arena walls and pillars are `StaticBody3D` on the "world" layer — they exist for the
 line-of-sight raycast, not to push bodies around.
 
@@ -114,8 +114,8 @@ versioned and inspectable:
 
 ```
 SaveSerializer.Serialize(save)  ->  JSON text
-SaveSlotManager                  ->  ISaveStorage (file, memory, or cloud)
-SaveMigration.Migrate(save)      ->  upgrades an old file in memory
+SaveSlotManager                  ->  ISaveStorage (file, in-process, or cloud)
+SaveMigration.Migrate(save)      ->  upgrades an old save in place
 ```
 
 Migration runs on **load**, not on save, so a failed upgrade does not destroy the
@@ -143,7 +143,7 @@ uses real `Button` nodes and a pooled, paged row list.
 
 | You are adding | Put it in |
 | --- | --- |
-| A damage formula, an AI decision, a loot rule | `Core/` — and test it in `Tests/Shadowbound.Core.Tests` |
+| A damage formula, an AI decision, a loot rule | `Core/` — and test it in `Tests/Ghasaq.Core.Tests` |
 | Reading input, drawing, sound, camera, node lifecycle | `scripts/` |
 | A new scene or UI surface | `scenes/` |
 

@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
 using Godot;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Content;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Progression;
-using Shadowbound.Core.Randomness;
-using Shadowbound.Core.Serialization;
-using Shadowbound.Core.Simulation;
-using Shadowbound.Core.World;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Content;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Progression;
+using Ghasaq.Core.Randomness;
+using Ghasaq.Core.Serialization;
+using Ghasaq.Core.Simulation;
+using Ghasaq.Core.World;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// The entry point and the assembly of the running game - the Godot
@@ -50,15 +50,15 @@ namespace Shadowbound.Game
         {
             new SpawnEntry { Archetype = GameContent.ArchetypeHollowWalker, X = 6f, Z = 20f, Level = 4 },
             new SpawnEntry { Archetype = GameContent.ArchetypeHollowWalker, X = -6f, Z = 20f, Level = 4 },
-            new SpawnEntry { Archetype = GameContent.ArchetypeVeilwarden, X = 9f, Z = -20f, Level = 6 },
-            new SpawnEntry { Archetype = GameContent.ArchetypeVeilwarden, X = -9f, Z = -20f, Level = 6 }
+            new SpawnEntry { Archetype = GameContent.ArchetypeVeilwatch, X = 9f, Z = -20f, Level = 6 },
+            new SpawnEntry { Archetype = GameContent.ArchetypeVeilwatch, X = -9f, Z = -20f, Level = 6 }
         };
 
         private static readonly SpawnEntry[] WardPlan =
         {
             new SpawnEntry { Archetype = GameContent.ArchetypeCinderHound, X = 12f, Z = 8f, Level = 7 },
             new SpawnEntry { Archetype = GameContent.ArchetypeCinderHound, X = -12f, Z = 8f, Level = 7 },
-            new SpawnEntry { Archetype = GameContent.ArchetypeVeilwarden, X = 0f, Z = -18f, Level = 8 }
+            new SpawnEntry { Archetype = GameContent.ArchetypeVeilwatch, X = 0f, Z = -18f, Level = 8 }
         };
 
         private static readonly SpawnEntry[] SanctumPlan =
@@ -134,7 +134,7 @@ namespace Shadowbound.Game
 
             Build();
 
-            GD.Print($"Shadowbound ready: region '{Session.RegionId}', " +
+            GD.Print($"Ghasaq ready: region '{Session.RegionId}', " +
                 $"{Session.Encounter.HostilesRemaining} hostiles, " +
                 $"{Session.Quests.All.Count} quests, level {Session.Progression.Level}");
         }
@@ -205,7 +205,7 @@ namespace Shadowbound.Game
             _playerView.Name = "PlayerView";
             _viewsRoot.AddChild(_playerView);
 
-            // The Warden's placeholder tint and scale, from the project's bootstrap.
+            // The Sigilbearer's placeholder tint and scale, from the project's bootstrap.
             _playerView.Bind(Session.Player, new Color(0.86f, 0.78f, 0.62f), 1.05f);
 
             _views.Add(_playerView);
@@ -443,7 +443,7 @@ namespace Shadowbound.Game
 
             if (!TravelTo(destination, out string error))
             {
-                GD.Print("Shadowbound: the gate would not open. " + error);
+                GD.Print("Ghasaq: the gate would not open. " + error);
             }
         }
 

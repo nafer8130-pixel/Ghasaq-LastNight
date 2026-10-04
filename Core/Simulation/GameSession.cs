@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Items;
-using Shadowbound.Core.Progression;
-using Shadowbound.Core.Quests;
-using Shadowbound.Core.Randomness;
-using Shadowbound.Core.Serialization;
-using Shadowbound.Core.World;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Items;
+using Ghasaq.Core.Progression;
+using Ghasaq.Core.Quests;
+using Ghasaq.Core.Randomness;
+using Ghasaq.Core.Serialization;
+using Ghasaq.Core.World;
 
-namespace Shadowbound.Core.Simulation
+namespace Ghasaq.Core.Simulation
 {
     /// <summary>
     /// One playthrough, in progress.

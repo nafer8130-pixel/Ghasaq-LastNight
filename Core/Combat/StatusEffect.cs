@@ -1,4 +1,4 @@
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>
     /// Status effects in the game. Members fall into two behavioural groups,
@@ -24,7 +24,7 @@ namespace Shadowbound.Core.Combat
         /// <summary>Damage dealt increased. Strongest instance applies.</summary>
         Empowered = 5,
 
-        /// <summary>Damage taken increased, from being marked by the Umbra. Strongest instance applies.</summary>
+        /// <summary>Damage taken increased, from being marked by the Ghasaq. Strongest instance applies.</summary>
         Marked = 6
     }
 

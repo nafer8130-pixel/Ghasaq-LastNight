@@ -1,9 +1,9 @@
 using System;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Stats;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Stats;
 
-namespace Shadowbound.Core.Progression
+namespace Ghasaq.Core.Progression
 {
     /// <summary>How much a stat grows per level for a given archetype.</summary>
     public readonly struct StatGrowth

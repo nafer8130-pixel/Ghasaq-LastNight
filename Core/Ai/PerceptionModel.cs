@@ -1,6 +1,6 @@
-using Shadowbound.Core.Numerics;
+using Ghasaq.Core.Numerics;
 
-namespace Shadowbound.Core.Ai
+namespace Ghasaq.Core.Ai
 {
     /// <summary>Everything needed to decide whether one combatant can sense another.</summary>
     public readonly struct PerceptionQuery

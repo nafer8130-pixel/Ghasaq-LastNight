@@ -1,4 +1,4 @@
-namespace Shadowbound.Core.Stats
+namespace Ghasaq.Core.Stats
 {
     /// <summary>
     /// Every numerical property that can describe a combatant. Values are held
@@ -10,7 +10,7 @@ namespace Shadowbound.Core.Stats
         MaxHealth = 0,
         MaxStamina = 1,
         AttackPower = 2,
-        ShadowPower = 3,
+        GhasaqPower = 3,
         Armor = 4,
         MoveSpeed = 5,
         CritChance = 6,
@@ -35,7 +35,7 @@ namespace Shadowbound.Core.Stats
             StatId.MaxHealth,
             StatId.MaxStamina,
             StatId.AttackPower,
-            StatId.ShadowPower,
+            StatId.GhasaqPower,
             StatId.Armor,
             StatId.MoveSpeed,
             StatId.CritChance,
@@ -54,7 +54,7 @@ namespace Shadowbound.Core.Stats
                 case StatId.MaxHealth: return "Vitality";
                 case StatId.MaxStamina: return "Endurance";
                 case StatId.AttackPower: return "Attack";
-                case StatId.ShadowPower: return "Umbra";
+                case StatId.GhasaqPower: return "Ghasaq";
                 case StatId.Armor: return "Ward";
                 case StatId.MoveSpeed: return "Speed";
                 case StatId.CritChance: return "Precision";

@@ -25,10 +25,10 @@ bash "$ROOT/Tools/check-core-purity.sh"
 
 echo ""
 echo "==> Building core (netstandard2.1, C# 9 - portable, engine-free)"
-"$DOTNET" build "$ROOT/Tests/Shadowbound.Core.Build/Shadowbound.Core.Build.csproj" \
+"$DOTNET" build "$ROOT/Tests/Ghasaq.Core.Build/Ghasaq.Core.Build.csproj" \
     --nologo -v minimal
 
 echo ""
 echo "==> Running core test suite"
-"$DOTNET" test "$ROOT/Tests/Shadowbound.Core.Tests/Shadowbound.Core.Tests.csproj" \
+"$DOTNET" test "$ROOT/Tests/Ghasaq.Core.Tests/Ghasaq.Core.Tests.csproj" \
     --nologo -v minimal "${@:-}"

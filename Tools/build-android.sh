@@ -7,7 +7,7 @@
 #   * Engine       Godot 4.5 (Mono/.NET build, because the game logic is C#)
 #   * Architecture Android ARM64 (arm64-v8a)
 #   * Orientation  Landscape (a project setting)
-#   * Package      com.shadowbound.thelastnight
+#   * Package      com.ghasaq.thelastnight
 #
 # Unlike the engine this project used to target, Godot and its export templates
 # are freely downloadable, so a real APK on a stock GitHub runner is achievable.
@@ -26,13 +26,13 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-OUTPUT="${1:-$ROOT/build/android/shadowbound.apk}"
+OUTPUT="${1:-$ROOT/build/android/ghasaq.apk}"
 EXIT_ENV=3
 
 # A release APK needs a release keystore. This project ships none, so the default
 # is a debug-signed APK, which is installable and needs no secret. Set
-# SHADOWBOUND_RELEASE=1 (with a keystore configured) to export a release build.
-EXPORT_MODE="${SHADOWBOUND_EXPORT_MODE:-debug}"
+# GHASAQ_RELEASE=1 (with a keystore configured) to export a release build.
+EXPORT_MODE="${GHASAQ_EXPORT_MODE:-debug}"
 
 die_env() {
     echo "build-android: ENVIRONMENT LIMITATION - $1" >&2

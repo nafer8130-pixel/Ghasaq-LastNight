@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Godot;
-using Shadowbound.Core.Serialization;
+using Ghasaq.Core.Serialization;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// Stores save slots as files under Godot's user data directory
@@ -13,14 +13,14 @@ namespace Shadowbound.Game
     /// Writes go to a temporary file first and are then moved into place, so a
     /// crash or a battery pull mid-write cannot leave a truncated save where a
     /// complete one used to be. On Android especially, a partially written file is
-    /// indistinguishable from a corrupt one, and losing an entire playthrough to a
+    /// indistinguishable from a damaged one, and losing an entire playthrough to a
     /// badly timed interrupt is not acceptable.
     ///
     /// The core supplies the format and the migration; this class only moves bytes.
     /// </summary>
     public sealed class GodotSaveStorage : ISaveStorage
     {
-        private const string Extension = ".shadowbound.json";
+        private const string Extension = ".ghasaq.json";
         private const string TempExtension = ".tmp";
 
         private readonly string _directory;

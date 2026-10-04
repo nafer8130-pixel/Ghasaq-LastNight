@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// The player's input authority, ported from the project's earlier input

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Stats;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Stats;
 
-namespace Shadowbound.Core.Items
+namespace Ghasaq.Core.Items
 {
     public enum ItemKind
     {
@@ -33,8 +33,8 @@ namespace Shadowbound.Core.Items
         Uncommon = 1,
         Rare = 2,
 
-        /// <summary>Drawn from the Umbra. The game's top tier of ordinary gear.</summary>
-        Umbral = 3,
+        /// <summary>Drawn from the Ghasaq. The game's top tier of ordinary gear.</summary>
+        Eclipse = 3,
 
         /// <summary>Unique story relics.</summary>
         Mythic = 4

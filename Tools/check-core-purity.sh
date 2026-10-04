@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# Enforces the architectural boundary of the Shadowbound core.
+# Enforces the architectural boundary of the Ghasaq core.
 #
 # The core under Core/ is deterministic, engine-free game logic. It is the
 # source of truth for every game rule and it must stay free of engine

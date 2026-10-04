@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Items;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Quests;
+using Ghasaq.Core.Items;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Quests;
 
-namespace Shadowbound.Core.Serialization
+namespace Ghasaq.Core.Serialization
 {
     /// <summary>Saved state for one quest.</summary>
     public struct QuestSnapshot
@@ -38,7 +38,7 @@ namespace Shadowbound.Core.Serialization
         public const int CurrentVersion = 1;
 
         /// <summary>Marker written into every file, so a foreign JSON document is rejected before it is interpreted.</summary>
-        public const string FormatId = "shadowbound.save";
+        public const string FormatId = "ghasaq.save";
 
         public string SlotId = "";
 

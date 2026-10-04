@@ -6,7 +6,7 @@
 | --- | --- |
 | Run the core test suite | .NET SDK 9.0 or newer |
 | Build and run the game | **Godot 4.5 (.NET)** — the Mono/.NET editor build |
-| Produce an APK | Godot 4.5 (.NET) + Android SDK (build-tools 35.0.1, platform 35, platform-tools) + OpenJDK 17 |
+| Produce an APK | Godot 4.5 (.NET) + Android SDK (platform-tools, build-tools + platform — verified with build-tools 36.0.0 / platform android-36) + a JDK (17+; verified with OpenJDK 25) |
 
 The core test suite needs no engine. Godot needs no Android SDK until you export.
 
@@ -14,6 +14,7 @@ The core test suite needs no engine. Godot needs no Android SDK until you export
 
 ```bash
 bash Tools/check-core-purity.sh   # the core must stay engine-free
+bash Tools/check-naming.sh        # no retired identifier from the earlier identity remains
 bash Tools/test-core.sh           # purity gate, compile, 563 tests
 bash Tools/check-godot-project.sh # project layout is complete and engine-clean
 ```
@@ -32,7 +33,7 @@ check-godot-project: OK (Godot 4.5 project layout is complete and engine-clean)
 1. Install **Godot 4.5 (.NET)** from <https://godotengine.org/download> (the .NET
    build, not the standard build).
 2. Open `project.godot`. Godot builds the C# solution automatically; you can also
-   build it directly with `dotnet build Shadowbound.csproj`.
+   build it directly with `dotnet build Ghasaq.csproj`.
 3. Press **F5**. The game boots in the **Grey Wilds**.
 
 ### Headless (no display)
@@ -59,7 +60,7 @@ godot --headless --path . res://Tests/Godot/GodotSmoke.tscn   # the smoke test
 | `Space` | Ashstep |
 | `Esc` / `Tab` | Open / close the menu |
 
-Movement is camera-relative: forward moves the Warden away from the camera, not
+Movement is camera-relative: forward moves the Sigilbearer away from the camera, not
 along a fixed world axis.
 
 ### Touch (Android)
@@ -89,7 +90,7 @@ a point or resume a save.
 The build runs entirely from the command line, without opening the editor:
 
 ```bash
-bash Tools/build-android.sh                 # -> build/android/shadowbound.apk
+bash Tools/build-android.sh                 # -> build/android/ghasaq.apk
 GODOT_BIN=/path/to/godot bash Tools/build-android.sh
 ```
 
@@ -108,22 +109,23 @@ Outcome contract (the workflow classifies on these):
 
 ### What was actually produced (measured)
 
-Running the script on a machine with Godot 4.5 (.NET) and the Android SDK produced:
+Running the script on a machine with Godot 4.5 (.NET) and the Android SDK produced
+(last run: after the 2026-10-04 naming change, 103,542,168 bytes):
 
 ```
 build-android: BUILD SUCCESS
-APK_PATH=build/android/shadowbound.apk
+APK_PATH=build/android/ghasaq.apk
 APK_SIZE_MB=98
 ```
 
 ```
-package: name='com.shadowbound.thelastnight' versionCode='1' versionName='1.0.0'
+package: name='com.ghasaq.thelastnight' versionCode='1' versionName='1.0.0'
 sdkVersion:'24'  targetSdkVersion:'35'
-launchable-activity: name='com.godot.game.GodotApp' label='Shadowbound: The Last Night'
+launchable-activity: name='com.godot.game.GodotApp' label='غَسَق: الليلة الأخيرة'
 android:screenOrientation = 0   (landscape)
 lib/arm64-v8a/libgodot_android.so  (+25 more arm64 libraries)
-assets/.godot/mono/publish/arm64/Shadowbound.dll
-assets/.godot/mono/publish/arm64/Shadowbound.Core.dll
+assets/.godot/mono/publish/arm64/Ghasaq.dll
+assets/.godot/mono/publish/arm64/Ghasaq.Core.dll
 Signer #1 certificate DN: CN=Godot, OU=Godot Engine, O=Stichting Godot, C=NL
 ```
 
@@ -133,12 +135,12 @@ Set in `project.godot` and `export_presets.cfg`:
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| Package | `com.shadowbound.thelastnight` | Preserved from the previous engines |
+| Package | `com.ghasaq.thelastnight` | Carries the internal name `ghasaq` |
 | Architecture | ARM64 only (`arm64-v8a=true`, others false) | Required for Play Store submission; halves build size |
 | Orientation | Landscape (`display/window/handheld/orientation=0`) | A third-person action game is unplayable in portrait |
-| Target API | 35 | Preserved from the previous engines; Google Play requires it for new apps |
+| Target API | 35 | Godot 4.5's template default; Google Play requires API 35 for new apps |
 | Texture compression | ETC2/ASTC (`import_etc2_astc=true`) | **Required** — the Android exporter refuses the project without it |
-| Signing | Debug keystore (default) | An installable APK with no secret. Set `SHADOWBOUND_EXPORT_MODE=release` (with a release keystore configured) for a release build |
+| Signing | Debug keystore (default) | An installable APK with no secret. Set `GHASAQ_EXPORT_MODE=release` (with a release keystore configured) for a release build |
 | Minimum API | Godot's template default is 24 | The previous engines used 26. To restore 26, enable a Gradle build (`gradle_build/use_gradle_build=true`) and set `gradle_build/min_sdk="26"` — Godot rejects that override without a Gradle build. |
 
 ## Continuous integration (GitHub Actions)
@@ -147,7 +149,7 @@ Two workflows:
 
 | Workflow | When | What it does |
 | --- | --- | --- |
-| **`ci.yml`** | Every push and pull request | The Godot gates: core purity, 563 core tests, project layout, C# build, headless smoke test. |
+| **`ci.yml`** | Every push and pull request | The Godot gates: naming gate, core purity, 563 core tests, project layout, C# build, headless smoke test. |
 | **`android.yml`** | Pushes to `main` and manual dispatch | Installs Godot + export templates + the Android SDK, exports the ARM64 APK, and classifies the outcome. |
 
 There are **no engine licence secrets** anywhere — Godot and its export templates
@@ -168,7 +170,7 @@ are free to download, which is what makes a real build on a stock runner possibl
 ## Troubleshooting
 
 **"C# project targets 'net8.0' but the export template only supports 'net9.0'."**
-Godot 4.5's Android export template bundles .NET 9. `Shadowbound.csproj` targets
+Godot 4.5's Android export template bundles .NET 9. `Ghasaq.csproj` targets
 `net9.0` for exactly this reason; do not lower it.
 
 **"Cannot export project with preset 'Android' due to configuration errors:
@@ -179,7 +181,7 @@ path in *Godot's editor settings* being wrong. `Tools/build-android.sh` sets the
 latter from `ANDROID_HOME` for you.
 
 **"This project contains C# files but no solution file was found."** Godot's .NET
-export needs `Shadowbound.sln` to bundle the assembly. It is committed; do not
+export needs `Ghasaq.sln` to bundle the assembly. It is committed; do not
 delete it.
 
 **Godot scans `Core/` as project resources.** `Core/.gdignore` and `Tests/.gdignore`

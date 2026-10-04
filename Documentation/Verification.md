@@ -4,6 +4,46 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## After the naming change (2026-10-04)
+
+The product, its packages and its assemblies were renamed to غَسَق / GHASAQ and
+the repository was swept for the retired words of the earlier working title
+([Naming.md](Naming.md) is the contract). Everything below was re-executed
+**after** that change, in this environment, with Godot 4.5-stable (.NET)
+downloaded for the run:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** — no retired word remains |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **563 passed, 0 failed** (327 ms) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors → `Ghasaq.dll` |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 16/16 checks** |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 300` | **Pass** — `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 103,542,168 bytes (98 MB) |
+
+The fresh APK was then inspected with the Android SDK's own tools (`aapt`,
+`unzip`, `apksigner`):
+
+```
+package: name='com.ghasaq.thelastnight' versionCode='1' versionName='1.0.0'
+sdkVersion:'24'  targetSdkVersion:'35'
+application-label:'غَسَق: الليلة الأخيرة'
+native-code: 'arm64-v8a'
+assets/.godot/mono/publish/arm64/Ghasaq.dll
+assets/.godot/mono/publish/arm64/Ghasaq.Core.dll
+Signer #1 certificate DN: CN=Godot, OU=Godot Engine, O=Stichting Godot, C=NL
+```
+
+Still not verified, because they need hardware: installing the APK on a physical
+device, touch controls, frame rate, and the camera on real devices. The GitHub
+Actions workflows still have not run on GitHub.
+
+The table below records the runs made **before** the renaming — including the
+pre-rename proof that the core and the Godot layer were healthy; its command
+names have been updated to the current identity.
+
 ## What has been run, and passed
 
 All of the following were run in the environment this port was written in, which
@@ -15,7 +55,7 @@ has Godot 4.5 (.NET) but no Unity and no Unreal Engine.
 | Core compiles | `bash Tools/test-core.sh` | **Pass** — portable library, 0 warnings |
 | Core test suite | `bash Tools/test-core.sh` | **563 passed, 0 failed** |
 | Godot project layout is complete and engine-clean | `bash Tools/check-godot-project.sh` | **Pass** |
-| Godot C# assembly builds | `dotnet build Shadowbound.csproj` | **Pass** — 0 warnings, 0 errors |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
 | Godot imports the project | `godot --headless --path . --import` | **Pass** |
 | Headless smoke test inside Godot | `godot --headless --path . res://Tests/Godot/GodotSmoke.tscn` | **Pass — 15/15 checks** |
 | The main scene assembles and runs | `godot --headless --path . --quit-after 300` | **Pass** — 300 physics frames, no errors |
@@ -33,7 +73,7 @@ ok - world graph has five regions
 ok - wilds starts with five hostiles
 ok - a fight actually resolved (hostiles fell)
 ok - the opening fight reached a conclusion
-ok - the Warden took damage
+ok - the Sigilbearer took damage
 ok - defeats granted experience
 ok - save serialises to JSON / deserialises
 ok - experience / inventory / position survive a save round-trip
@@ -48,7 +88,7 @@ out fails the build.
 Running `scenes/Main.tscn` headless builds the whole game and logs:
 
 ```
-Shadowbound ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1
+Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1
 ```
 
 That is the assembled session: arena, player view, five enemy views, the HUD bound
@@ -61,16 +101,16 @@ offered.
 `aapt`, `unzip` and `apksigner`:
 
 ```
-package: name='com.shadowbound.thelastnight' versionName='1.0.0'
+package: name='com.ghasaq.thelastnight' versionName='1.0.0'
 sdkVersion:'24'  targetSdkVersion:'35'
 android:screenOrientation = 0                 # landscape
 lib/arm64-v8a/libgodot_android.so             # + 25 more arm64 libraries
-assets/.godot/mono/publish/arm64/Shadowbound.dll
-assets/.godot/mono/publish/arm64/Shadowbound.Core.dll
+assets/.godot/mono/publish/arm64/Ghasaq.dll
+assets/.godot/mono/publish/arm64/Ghasaq.Core.dll
 Signer #1 certificate DN: CN=Godot, OU=Godot Engine, O=Stichting Godot, C=NL
 ```
 
-The APK is `build/android/shadowbound.apk` (98 MB) and is not committed (it is
+The APK is `build/android/ghasaq.apk` (98 MB) and is not committed (it is
 gitignored).
 
 ### What the APK proves, and what it does not
@@ -89,7 +129,7 @@ frame rate and the camera on real hardware are untested. That requires a phone.
 | **Installing and playing the APK on a device** | Requires hardware. | Install the APK on a phone. |
 | **Performance on target hardware** | Requires hardware. | Profile on a mid-range phone. |
 | **The GitHub Actions workflows on GitHub** | They are new and were not dispatched. | Push and let `ci.yml` / `android.yml` run. |
-| **A release-signed APK** | No release keystore exists in the repository. | Add one and set `SHADOWBOUND_EXPORT_MODE=release`. |
+| **A release-signed APK** | No release keystore exists in the repository. | Add one and set `GHASAQ_EXPORT_MODE=release`. |
 
 The workflows' steps were validated by running the same scripts locally; the
 workflows themselves have not executed on a GitHub runner.
@@ -99,7 +139,7 @@ workflows themselves have not executed on a GitHub runner.
 | Era | Engine layer | Core | Status |
 | --- | --- | --- | --- |
 | Original | Unity 6 (`Assets/`, `Packages/`, `ProjectSettings/`) | C# in `Core/` | Removed |
-| Second | Unreal Engine 5 (`Shadowbound.uproject`, `Source/`, `Config/`) | C# in `Core/`; an incomplete C++ port | Removed. **Never compiled or run** — no Unreal Engine was available. |
+| Second | Unreal Engine 5 (`Ghasaq.uproject`, `Source/`, `Config/`) | C# in `Core/`; an incomplete C++ port | Removed. **Never compiled or run** — no Unreal Engine was available. |
 | Current | Godot 4.5 (`project.godot`, `scripts/`, `scenes/`) | C# in `Core/` | Compiles, runs headless, and exports a validated APK |
 
 The Unreal layer was removed without ever having been compiled; the Godot layer has

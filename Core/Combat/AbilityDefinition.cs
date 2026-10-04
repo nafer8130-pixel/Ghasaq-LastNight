@@ -1,6 +1,6 @@
 using System;
 
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>Broad shape of an ability, which decides how targets are selected.</summary>
     public enum AbilityKind
@@ -76,8 +76,8 @@ namespace Shadowbound.Core.Combat
         /// <summary>School of the direct damage.</summary>
         public DamageType DamageType = DamageType.Physical;
 
-        /// <summary>Scale off Umbra instead of Attack. The player's shadow abilities do this.</summary>
-        public bool UsesShadowPower;
+        /// <summary>Scale off Ghasaq instead of Attack. The player's ghasaq abilities do this.</summary>
+        public bool UsesGhasaqPower;
 
         public float StaminaCost;
         public float CooldownSeconds = 1f;

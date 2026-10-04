@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Numerics;
+using Ghasaq.Core.Numerics;
 
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>Why an ability activation was refused.</summary>
     public enum AbilityFailure

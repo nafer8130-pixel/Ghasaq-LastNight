@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Items;
-using Shadowbound.Core.Quests;
-using Shadowbound.Core.World;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Items;
+using Ghasaq.Core.Quests;
+using Ghasaq.Core.World;
 
-namespace Shadowbound.Core.Content
+namespace Ghasaq.Core.Content
 {
     public enum ContentProblemSeverity
     {

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Randomness;
+using Ghasaq.Core.Randomness;
 
-namespace Shadowbound.Core.Items
+namespace Ghasaq.Core.Items
 {
     /// <summary>One possible drop in a table.</summary>
     public sealed class LootEntry

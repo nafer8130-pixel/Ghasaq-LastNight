@@ -1,8 +1,8 @@
 using System;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Stats;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Stats;
 
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>Which side a combatant fights for. Determines valid targets.</summary>
     public enum Faction
@@ -331,9 +331,9 @@ namespace Shadowbound.Core.Combat
             get { return Stats.Get(StatId.AttackPower) * Statuses.DamageDealtMultiplier; }
         }
 
-        public float EffectiveShadowPower
+        public float EffectiveGhasaqPower
         {
-            get { return Stats.Get(StatId.ShadowPower) * Statuses.DamageDealtMultiplier; }
+            get { return Stats.Get(StatId.GhasaqPower) * Statuses.DamageDealtMultiplier; }
         }
 
         /// <summary>Revives the combatant at a position with full vitals. Used by respawn and encounter resets.</summary>

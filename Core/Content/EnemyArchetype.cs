@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Ai;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Stats;
+using Ghasaq.Core.Ai;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Stats;
 
-namespace Shadowbound.Core.Content
+namespace Ghasaq.Core.Content
 {
     /// <summary>
     /// A reusable enemy template: the stats, abilities and behaviour every
@@ -27,7 +27,7 @@ namespace Shadowbound.Core.Content
 
         public float MaxHealth = 100f;
         public float AttackPower = 10f;
-        public float ShadowPower;
+        public float GhasaqPower;
         public float Armor;
         public float MoveSpeed = 4f;
         public float CritChance;
@@ -114,7 +114,7 @@ namespace Shadowbound.Core.Content
             stats.SetBase(StatId.MaxHealth, MaxHealth * healthScale);
             stats.SetBase(StatId.MaxStamina, 100f);
             stats.SetBase(StatId.AttackPower, AttackPower * powerScale);
-            stats.SetBase(StatId.ShadowPower, ShadowPower * powerScale);
+            stats.SetBase(StatId.GhasaqPower, GhasaqPower * powerScale);
             stats.SetBase(StatId.Armor, Armor);
             stats.SetBase(StatId.MoveSpeed, MoveSpeed);
             stats.SetBase(StatId.CritChance, CritChance);

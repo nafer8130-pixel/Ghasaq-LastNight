@@ -1,8 +1,8 @@
 using System;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Stats;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Stats;
 
-namespace Shadowbound.Core.Combat
+namespace Ghasaq.Core.Combat
 {
     /// <summary>
     /// Health and stamina for one combatant.

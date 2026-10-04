@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Shadowbound.Core.Items;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Quests;
+using Ghasaq.Core.Items;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Quests;
 
-namespace Shadowbound.Core.Serialization
+namespace Ghasaq.Core.Serialization
 {
     /// <summary>Thrown when a save file cannot be interpreted.</summary>
     public sealed class SaveFormatException : Exception
@@ -22,7 +22,7 @@ namespace Shadowbound.Core.Serialization
     /// The file is wrapped in an envelope carrying a format id and a version, so a
     /// foreign or future file is rejected before its contents are interpreted.
     /// Interpreting first and asking questions later is how a save silently loads
-    /// halfway and corrupts a character.
+    /// halfway and damages a character.
     ///
     /// Reading is tolerant in two specific ways, both deliberate:
     ///   * Missing fields fall back to a default, so a field added later does not
@@ -32,7 +32,7 @@ namespace Shadowbound.Core.Serialization
     ///
     /// The 64-bit generator state is written as a decimal STRING rather than a
     /// JSON number. A JSON number is a double here, which cannot represent every
-    /// 64-bit integer exactly, so storing it numerically would silently corrupt
+    /// 64-bit integer exactly, so storing it numerically would silently damage
     /// the generator and desynchronise deterministic replays.
     /// </summary>
     public static class SaveSerializer
@@ -96,7 +96,7 @@ namespace Shadowbound.Core.Serialization
             if (format != SaveGame.FormatId)
             {
                 throw new SaveFormatException(
-                    "Not a Shadowbound save file (found format '" + format + "').");
+                    "Not a Ghasaq save file (found format '" + format + "').");
             }
 
             JsonValue versionNode = root.Get(VersionKey);

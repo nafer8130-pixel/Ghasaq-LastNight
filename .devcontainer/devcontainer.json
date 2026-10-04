@@ -1,5 +1,5 @@
 {
-  "name": "Shadowbound Cloud Desktop",
+  "name": "Ghasaq Cloud Desktop",
   "features": {
     "ghcr.io/devcontainers/features/desktop-lite:1": {
       "password": "codespaces",
@@ -10,7 +10,7 @@
   "forwardPorts": [6080, 5901],
   "portsAttributes": {
     "6080": {
-      "label": "Shadowbound Cloud Desktop",
+      "label": "Ghasaq Cloud Desktop",
       "protocol": "http"
     },
     "5901": {

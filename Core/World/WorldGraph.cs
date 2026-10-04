@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Quests;
+using Ghasaq.Core.Quests;
 
-namespace Shadowbound.Core.World
+namespace Ghasaq.Core.World
 {
     public enum RegionKind
     {

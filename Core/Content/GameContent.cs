@@ -1,23 +1,23 @@
 using System;
 using System.Collections.Generic;
-using Shadowbound.Core.Ai;
-using Shadowbound.Core.Combat;
-using Shadowbound.Core.Items;
-using Shadowbound.Core.Progression;
-using Shadowbound.Core.Quests;
-using Shadowbound.Core.Simulation;
-using Shadowbound.Core.Stats;
-using Shadowbound.Core.World;
+using Ghasaq.Core.Ai;
+using Ghasaq.Core.Combat;
+using Ghasaq.Core.Items;
+using Ghasaq.Core.Progression;
+using Ghasaq.Core.Quests;
+using Ghasaq.Core.Simulation;
+using Ghasaq.Core.Stats;
+using Ghasaq.Core.World;
 
-namespace Shadowbound.Core.Content
+namespace Ghasaq.Core.Content
 {
     /// <summary>
-    /// All authored content for SHADOWBOUND: THE LAST NIGHT.
+    /// All authored content for GHASAQ: THE LAST NIGHT.
     ///
     /// The fiction, in brief. The world ended once already, in an event history
-    /// remembers as the Long Nightfall, when a border in the dark called the Umbra
+    /// remembers as the Long Nightfall, when a border in the dark called the Ghasaq
     /// gave way. What survived are the Embers: walled refuges held open by fire
-    /// that someone has to keep feeding. The player is a Warden of the Last Ember,
+    /// that someone has to keep feeding. The player is a Sigilbearer of the Last Ember,
     /// sent out to find out why the border is thinning again.
     ///
     /// Every creature, place and name here is original to this project.
@@ -36,8 +36,8 @@ namespace Shadowbound.Core.Content
         public const string ItemBoneShard = "bone-shard";
         public const string ItemVeilSplinter = "veil-splinter";
         public const string ItemEmberDraught = "ember-draught";
-        public const string ItemWardensBlade = "wardens-blade";
-        public const string ItemUmbralBlade = "umbral-blade";
+        public const string ItemSigilbearersBlade = "sigilbearers-blade";
+        public const string ItemGhasaqEdge = "ghasaq-edge";
         public const string ItemAshenPlate = "ashen-plate";
         public const string ItemEmberRelic = "ember-relic";
         public const string ItemSentinelsCore = "sentinels-core";
@@ -46,7 +46,7 @@ namespace Shadowbound.Core.Content
 
         public const string ArchetypeHollowWalker = "hollow-walker";
         public const string ArchetypeCinderHound = "cinder-hound";
-        public const string ArchetypeVeilwarden = "veilwarden";
+        public const string ArchetypeVeilwatch = "veilwatch";
         public const string ArchetypeAshenSentinel = "ashen-sentinel";
 
         // -------------------------------- regions --------------------------------
@@ -55,13 +55,13 @@ namespace Shadowbound.Core.Content
         public const string RegionWilds = "grey-wilds";
         public const string RegionRuins = "hollowed-ruins";
         public const string RegionWard = "sunken-ward";
-        public const string RegionSanctum = "umbral-sanctum";
+        public const string RegionSanctum = "ghasaq-sanctum";
 
         // --------------------------------- story ---------------------------------
 
         public const string ChapterAshAndSilence = "ch-ash-and-silence";
         public const string ChapterTheHollowedRuins = "ch-the-hollowed-ruins";
-        public const string ChapterTheUmbralSanctum = "ch-the-umbral-sanctum";
+        public const string ChapterTheGhasaqSanctum = "ch-the-ghasaq-sanctum";
 
         public const string QuestArrival = "q-arrival";
         public const string QuestFirstBlood = "q-first-blood";
@@ -73,7 +73,7 @@ namespace Shadowbound.Core.Content
 
         private const string LootHollowWalker = "loot-hollow-walker";
         private const string LootCinderHound = "loot-cinder-hound";
-        private const string LootVeilwarden = "loot-veilwarden";
+        private const string LootVeilwatch = "loot-veilwatch";
         private const string LootSentinel = "loot-sentinel";
 
         // ================================== items ==================================
@@ -106,7 +106,7 @@ namespace Shadowbound.Core.Content
                 {
                     Id = ItemVeilSplinter,
                     DisplayName = "Veil Splinter",
-                    Description = "A shard of the border. It hums when the Umbra presses close.",
+                    Description = "A shard of the border. It hums when the Ghasaq presses close.",
                     Kind = ItemKind.Material,
                     Rarity = ItemRarity.Rare,
                     MaxStack = 99
@@ -127,8 +127,8 @@ namespace Shadowbound.Core.Content
                 },
                 new ItemDefinition
                 {
-                    Id = ItemWardensBlade,
-                    DisplayName = "Warden's Blade",
+                    Id = ItemSigilbearersBlade,
+                    DisplayName = "Sigilbearer's Blade",
                     Description = "Standard issue. Balanced, unfashionable, reliable.",
                     Kind = ItemKind.Weapon,
                     Rarity = ItemRarity.Common,
@@ -141,17 +141,17 @@ namespace Shadowbound.Core.Content
                 },
                 new ItemDefinition
                 {
-                    Id = ItemUmbralBlade,
-                    DisplayName = "Umbral Edge",
+                    Id = ItemGhasaqEdge,
+                    DisplayName = "Ghasaq Edge",
                     Description = "It cuts the dark as readily as it cuts flesh.",
                     Kind = ItemKind.Weapon,
-                    Rarity = ItemRarity.Umbral,
+                    Rarity = ItemRarity.Eclipse,
                     MaxStack = 1,
                     RequiredLevel = 8,
                     Modifiers = new[]
                     {
                         StatModifier.Flat(StatId.AttackPower, 34f),
-                        StatModifier.Flat(StatId.ShadowPower, 46f),
+                        StatModifier.Flat(StatId.GhasaqPower, 46f),
                         StatModifier.Percent(StatId.CritChance, 0.08f)
                     }
                 },
@@ -181,7 +181,7 @@ namespace Shadowbound.Core.Content
                     MaxStack = 1,
                     Modifiers = new[]
                     {
-                        StatModifier.Flat(StatId.ShadowPower, 18f),
+                        StatModifier.Flat(StatId.GhasaqPower, 18f),
                         StatModifier.Flat(StatId.HealthRegen, 2.5f),
                         StatModifier.Percent(StatId.StatusResistance, 0.15f)
                     }
@@ -204,7 +204,7 @@ namespace Shadowbound.Core.Content
         // =============================== player kit ===============================
 
         /// <summary>
-        /// The Warden's starting kit. Order matters: index 0 is the basic attack,
+        /// The Sigilbearer's starting kit. Order matters: index 0 is the basic attack,
         /// which is what the AI and the default input binding assume.
         /// </summary>
         public static List<AbilityDefinition> BuildPlayerAbilities()
@@ -231,14 +231,14 @@ namespace Shadowbound.Core.Content
                     KnockbackSpeed = 3f
                 },
 
-                // 1 - the Umbra answer. Scales off Shadow Power, not Attack.
+                // 1 - the Ghasaq answer. Scales off Ghasaq Power, not Attack.
                 new AbilityDefinition
                 {
-                    Id = "umbra-lance",
-                    DisplayName = "Umbra Lance",
+                    Id = "ghasaq-lance",
+                    DisplayName = "Ghasaq Lance",
                     Kind = AbilityKind.Bolt,
-                    DamageType = DamageType.Shadow,
-                    UsesShadowPower = true,
+                    DamageType = DamageType.Ghasaq,
+                    UsesGhasaqPower = true,
                     StaminaCost = 22f,
                     CooldownSeconds = 2.2f,
                     WindupSeconds = 0.35f,
@@ -321,7 +321,7 @@ namespace Shadowbound.Core.Content
                 new StatGrowth(StatId.MaxHealth, 22f),
                 new StatGrowth(StatId.MaxStamina, 6f),
                 new StatGrowth(StatId.AttackPower, 2.5f),
-                new StatGrowth(StatId.ShadowPower, 2.5f),
+                new StatGrowth(StatId.GhasaqPower, 2.5f),
                 new StatGrowth(StatId.Armor, 1.5f)
             };
         }
@@ -341,7 +341,7 @@ namespace Shadowbound.Core.Content
                 case StatId.MaxHealth: return 15f;
                 case StatId.MaxStamina: return 8f;
                 case StatId.AttackPower: return 2f;
-                case StatId.ShadowPower: return 2f;
+                case StatId.GhasaqPower: return 2f;
                 case StatId.Armor: return 2f;
                 case StatId.MoveSpeed: return 0.15f;
                 case StatId.CritChance: return 0.01f;
@@ -354,13 +354,13 @@ namespace Shadowbound.Core.Content
             }
         }
 
-        /// <summary>A level 1 Warden at full health, ready to place in a scene.</summary>
-        public static Combatant CreatePlayer(string id = "warden")
+        /// <summary>A level 1 Sigilbearer at full health, ready to place in a scene.</summary>
+        public static Combatant CreatePlayer(string id = "sigilbearer")
         {
             var player = new Combatant(id, Faction.Player, 1)
             {
-                DisplayName = "Warden",
-                ArchetypeId = "warden",
+                DisplayName = "Sigilbearer",
+                ArchetypeId = "sigilbearer",
                 IsPersistent = true
             };
 
@@ -368,7 +368,7 @@ namespace Shadowbound.Core.Content
             stats.SetBase(StatId.MaxHealth, 320f);
             stats.SetBase(StatId.MaxStamina, 100f);
             stats.SetBase(StatId.AttackPower, 18f);
-            stats.SetBase(StatId.ShadowPower, 16f);
+            stats.SetBase(StatId.GhasaqPower, 16f);
             stats.SetBase(StatId.Armor, 10f);
             stats.SetBase(StatId.MoveSpeed, 5.5f);
             stats.SetBase(StatId.CritChance, 0.05f);
@@ -499,28 +499,28 @@ namespace Shadowbound.Core.Content
             };
         }
 
-        public static EnemyArchetype BuildVeilwarden()
+        public static EnemyArchetype BuildVeilwatch()
         {
             var resistances = new ResistanceSet();
-            resistances.Set(DamageType.Shadow, 0.45f);
+            resistances.Set(DamageType.Ghasaq, 0.45f);
             resistances.Set(DamageType.Vital, -0.2f);
 
             return new EnemyArchetype
             {
-                Id = ArchetypeVeilwarden,
-                DisplayName = "Veilwarden",
+                Id = ArchetypeVeilwatch,
+                DisplayName = "Veilwatch",
                 Description = "It still thinks it is guarding something. It is not wrong.",
                 Level = 6,
                 MaxHealth = 320f,
                 AttackPower = 30f,
-                ShadowPower = 24f,
+                GhasaqPower = 24f,
                 Armor = 40f,
                 MoveSpeed = 4.2f,
                 CritChance = 0.1f,
                 StatusResistance = 0.3f,
                 Resistances = resistances,
                 ExperienceReward = 180,
-                LootTableId = LootVeilwarden,
+                LootTableId = LootVeilwatch,
                 BodyScale = 1.35f,
                 TintRgb = new[] { 0.28f, 0.30f, 0.42f },
                 AttackAbilityIndex = 0,
@@ -532,8 +532,8 @@ namespace Shadowbound.Core.Content
                         Id = "veil-sweep",
                         DisplayName = "Veil Sweep",
                         Kind = AbilityKind.Cleave,
-                        DamageType = DamageType.Shadow,
-                        UsesShadowPower = true,
+                        DamageType = DamageType.Ghasaq,
+                        UsesGhasaqPower = true,
                         CooldownSeconds = 2.4f,
                         WindupSeconds = 0.7f,
                         RecoverySeconds = 0.5f,
@@ -565,7 +565,7 @@ namespace Shadowbound.Core.Content
                 Level = 10,
                 MaxHealth = 1500f,
                 AttackPower = 46f,
-                ShadowPower = 30f,
+                GhasaqPower = 30f,
                 Armor = 70f,
                 MoveSpeed = 3.4f,
                 CritChance = 0.12f,
@@ -611,7 +611,7 @@ namespace Shadowbound.Core.Content
             {
                 BuildHollowWalker(),
                 BuildCinderHound(),
-                BuildVeilwarden(),
+                BuildVeilwatch(),
                 BuildAshenSentinel()
             };
         }
@@ -666,9 +666,9 @@ namespace Shadowbound.Core.Content
                 MaxRolls = 2
             };
 
-            tables[LootVeilwarden] = new LootTable
+            tables[LootVeilwatch] = new LootTable
             {
-                Id = LootVeilwarden,
+                Id = LootVeilwatch,
                 Guaranteed = new[] { new LootEntry(ItemVeilSplinter, 1f, 1, 1) },
                 Weighted = new[]
                 {
@@ -691,7 +691,7 @@ namespace Shadowbound.Core.Content
                 },
                 Weighted = new[]
                 {
-                    new LootEntry(ItemUmbralBlade, 1f, 1, 1),
+                    new LootEntry(ItemGhasaqEdge, 1f, 1, 1),
                     new LootEntry(ItemEmberRelic, 3f, 1, 1),
                     new LootEntry(ItemEmberDraught, 4f, 2, 3)
                 },
@@ -735,7 +735,7 @@ namespace Shadowbound.Core.Content
                     Connections = new[] { RegionWilds, RegionSanctum },
                     RequiredChapterId = ChapterAshAndSilence,
                     RecommendedLevel = 5,
-                    EncounterIds = new[] { ArchetypeHollowWalker, ArchetypeVeilwarden }
+                    EncounterIds = new[] { ArchetypeHollowWalker, ArchetypeVeilwatch }
                 },
                 new RegionDefinition
                 {
@@ -745,12 +745,12 @@ namespace Shadowbound.Core.Content
                     Connections = new[] { RegionWilds },
                     RequiredChapterId = ChapterTheHollowedRuins,
                     RecommendedLevel = 8,
-                    EncounterIds = new[] { ArchetypeVeilwarden }
+                    EncounterIds = new[] { ArchetypeVeilwatch }
                 },
                 new RegionDefinition
                 {
                     Id = RegionSanctum,
-                    DisplayName = "The Umbral Sanctum",
+                    DisplayName = "The Ghasaq Sanctum",
                     Kind = RegionKind.Threshold,
                     Connections = new[] { RegionRuins },
                     RequiredChapterId = ChapterTheHollowedRuins,
@@ -800,7 +800,7 @@ namespace Shadowbound.Core.Content
                         AttributePoints = 1,
                         Items = new[]
                         {
-                            new ItemStack(ItemWardensBlade, 1),
+                            new ItemStack(ItemSigilbearersBlade, 1),
                             new ItemStack(ItemEmberDraught, 3)
                         }
                     }
@@ -826,7 +826,7 @@ namespace Shadowbound.Core.Content
                 {
                     Id = QuestSplinters,
                     Title = "Splinters of the Veil",
-                    Summary = "Collect what the Veilwardens carry. It is the only thing that tells us where the border is thin.",
+                    Summary = "Collect what the Veilwatch carry. It is the only thing that tells us where the border is thin.",
                     ChapterId = ChapterTheHollowedRuins,
                     PrerequisiteQuestIds = new[] { QuestDescent },
                     Objectives = new[]
@@ -845,7 +845,7 @@ namespace Shadowbound.Core.Content
                     Id = QuestSentinel,
                     Title = "The Last Night",
                     Summary = "Whatever has been keeping the gate closed is awake, and it has been waiting.",
-                    ChapterId = ChapterTheUmbralSanctum,
+                    ChapterId = ChapterTheGhasaqSanctum,
                     PrerequisiteQuestIds = new[] { QuestSplinters },
                     Objectives = new[]
                     {
@@ -855,7 +855,7 @@ namespace Shadowbound.Core.Content
                     {
                         Experience = 1500,
                         AttributePoints = 2,
-                        Items = new[] { new ItemStack(ItemUmbralBlade, 1) }
+                        Items = new[] { new ItemStack(ItemGhasaqEdge, 1) }
                     }
                 }
             };
@@ -884,7 +884,7 @@ namespace Shadowbound.Core.Content
                 },
                 new ChapterDefinition
                 {
-                    Id = ChapterTheUmbralSanctum,
+                    Id = ChapterTheGhasaqSanctum,
                     Title = "The Last Night",
                     Summary = "Hold the gate, or watch it open.",
                     QuestIds = new[] { QuestSentinel },

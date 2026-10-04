@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Shadowbound.Core.Items
+namespace Ghasaq.Core.Items
 {
     /// <summary>One stack of items, as stored in a save file and returned by loot rollers.</summary>
     public struct ItemStack

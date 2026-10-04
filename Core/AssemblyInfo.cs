@@ -12,4 +12,4 @@ using System.Runtime.CompilerServices;
 // assembly named below exists inside the editor, which is harmless.
 // -----------------------------------------------------------------------------
 
-[assembly: InternalsVisibleTo("Shadowbound.Core.Tests")]
+[assembly: InternalsVisibleTo("Ghasaq.Core.Tests")]

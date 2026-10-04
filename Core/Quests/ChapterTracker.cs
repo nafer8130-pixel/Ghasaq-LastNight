@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Shadowbound.Core.Quests
+namespace Ghasaq.Core.Quests
 {
     /// <summary>
     /// One chapter of the story: a named group of quests, gated behind the

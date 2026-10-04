@@ -1,16 +1,16 @@
 ; Engine configuration file.
-; Shadowbound: The Last Night — Godot 4.5 project.
+; غَسَق: الليلة الأخيرة (GHASAQ: THE LAST NIGHT) — Godot 4.5 project.
 ;
 ; The engine-free core rules live in Core/ (plain C#) and are referenced by
-; Shadowbound.csproj. Everything under scripts/ is the Godot presentation
+; Ghasaq.csproj. Everything under scripts/ is the Godot presentation
 ; layer: it copies state from the core and never writes positions back.
 
 config_version=5
 
 [application]
 
-config/name="Shadowbound: The Last Night"
-config/description="An original dark-fantasy 3D action RPG. Godot 4.5 port of the project's engine-free C# core."
+config/name="غَسَق: الليلة الأخيرة"
+config/description="غَسَق: الليلة الأخيرة — GHASAQ: THE LAST NIGHT. An original dark-fantasy 3D action RPG for Android: Godot 4.5 (.NET) over an engine-free C# core."
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.5", "C#", "Forward Plus")
 config/icon="res://icon.svg"
@@ -27,7 +27,7 @@ window/stretch/aspect="expand"
 
 [dotnet]
 
-project/assembly_name="Shadowbound"
+project/assembly_name="Ghasaq"
 
 [input]
 

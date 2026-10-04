@@ -1,6 +1,6 @@
 using System;
 
-namespace Shadowbound.Core.Randomness
+namespace Ghasaq.Core.Randomness
 {
     /// <summary>
     /// Seeded PCG32 generator. Used everywhere the game makes a random

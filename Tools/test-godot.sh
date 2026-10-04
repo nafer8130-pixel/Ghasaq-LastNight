@@ -27,7 +27,7 @@ if [ -z "$GODOT" ] || ! command -v "$GODOT" >/dev/null 2>&1; then
 fi
 
 echo "==> Building Godot C# assembly"
-dotnet build "$ROOT/Shadowbound.csproj" --nologo -v minimal
+dotnet build "$ROOT/Ghasaq.csproj" --nologo -v minimal
 
 echo ""
 echo "==> Importing Godot project"

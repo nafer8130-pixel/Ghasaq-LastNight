@@ -1,9 +1,9 @@
 using Godot;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
-    /// A creature's body: Hollow Walker, Cinder Hound, Veilwarden, Ashen Sentinel.
+    /// A creature's body: Hollow Walker, Cinder Hound, Veilwatch, Ashen Sentinel.
     ///
     /// Identical machinery for all of them - stats, abilities and behaviour come
     /// from the archetype through the core. The boss uses a larger box instead of

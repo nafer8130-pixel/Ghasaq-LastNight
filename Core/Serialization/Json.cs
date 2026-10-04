@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace Shadowbound.Core.Serialization
+namespace Ghasaq.Core.Serialization
 {
     public enum JsonKind
     {
@@ -591,7 +591,7 @@ namespace Shadowbound.Core.Serialization
 
         /// <summary>
         /// Parses without throwing. Returns false and an error message instead,
-        /// which is what a save loader needs: a corrupt slot should be reported,
+        /// which is what a save loader needs: a damaged slot should be reported,
         /// not crash the game.
         /// </summary>
         public static bool TryParse(string text, out JsonValue value, out string error)

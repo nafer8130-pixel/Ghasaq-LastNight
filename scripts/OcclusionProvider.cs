@@ -1,8 +1,8 @@
 using Godot;
-using Shadowbound.Core.Numerics;
-using Shadowbound.Core.Simulation;
+using Ghasaq.Core.Numerics;
+using Ghasaq.Core.Simulation;
 
-namespace Shadowbound.Game
+namespace Ghasaq.Game
 {
     /// <summary>
     /// Answers the core's line-of-sight queries with a real Godot physics raycast.

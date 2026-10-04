@@ -1,7 +1,7 @@
 using System;
-using Shadowbound.Core.Numerics;
+using Ghasaq.Core.Numerics;
 
-namespace Shadowbound.Core.Quests
+namespace Ghasaq.Core.Quests
 {
     /// <summary>
     /// Live progress for one quest.
