@@ -13,7 +13,7 @@ five verbs and all five Prices are code, and each one is pinned by a test.
 | --- | --- | --- |
 | Naming gate | `bash Tools/check-naming.sh` | **Pass** |
 | Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
-| Core test suite | `bash Tools/test-core.sh` | **599 passed, 0 failed** (239 ms; 567 before this change) |
+| Core test suite | `bash Tools/test-core.sh` | **600 passed, 0 failed** (321 ms; 567 before this change) |
 | Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
 | Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
 | Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 16/16 checks** |
@@ -43,6 +43,13 @@ New in code:
 - Carrying: `GameSession.TryEquipSigil` refuses mid-fight, and the carried id
   round-trips through a save. `ContentValidator` now fails a Sigil with no Price
   line, with fault-injection tests proving the rule fires.
+
+Both workflows ran on GitHub for this change, on the Sigil commit (`cae645c`):
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #6 | **success** — naming gate, purity, the core tests, layout, build, smoke |
+| `android.yml` | Android ARM64 #6 | **success** — the ARM64 APK exported on a GitHub runner |
 
 **Not measured:** the feel gate of [Sigils.md](Sigils.md) — whether a player can
 say what their Sigil does and what it costs within one fight — is a designer and

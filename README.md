@@ -34,7 +34,7 @@ Unity folders (`Assets/`, `Packages/`, `ProjectSettings/`) are gone too.
 
 | Area | State |
 | --- | --- |
-| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, items, quests, world, saves | **Done — 599 tests passing** |
+| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, items, quests, world, saves | **Done — 600 tests passing** |
 | Godot game layer (`scripts/`, `scenes/`) — arena, player, enemies, camera, input, HUD, menu, saves | **Done — builds clean, runs headless** |
 | Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip |
 | Android ARM64 APK | **Produced and validated locally** — see below |
@@ -46,7 +46,7 @@ The following are verified **by execution**, on a machine with no game engine
 installed beyond Godot itself:
 
 - **The game rules:** `bash Tools/test-core.sh` compiles the real core sources and
-  runs **599 tests**.
+  runs **600 tests**.
 - **The Godot assembly:** `bash Tools/test-godot.sh` builds `Ghasaq.csproj`,
   imports the project, and runs a headless smoke test **inside Godot** that proves
   the deterministic RNG parity, boots a session, resolves a real fight and
@@ -73,7 +73,7 @@ Android ARM64 export both succeeded on the rename commit (`f6832c2`).
 ```bash
 bash Tools/check-core-purity.sh   # the core must stay engine-free (Godot/Unity/Unreal)
 bash Tools/check-naming.sh        # no retired identifier from the earlier identity remains
-bash Tools/test-core.sh           # purity gate + 599 core tests
+bash Tools/test-core.sh           # purity gate + 600 core tests
 bash Tools/check-godot-project.sh # the Godot project layout is complete and engine-clean
 bash Tools/test-godot.sh          # build the C# assembly + headless smoke test
 bash Tools/build-android.sh       # export the Android ARM64 APK (needs Godot + Android SDK)
@@ -93,7 +93,7 @@ scenes/                  authored scenes: Main, Arena, Player, Enemy, Hud, GameM
 scripts/                 the Godot game layer (C#): views, camera, input, HUD, menu, saves
 Core/                    the engine-free C# game rules (the source of truth)
 Tests/
-  Ghasaq.Core.Tests/  xUnit suite for the core (599 tests)
+  Ghasaq.Core.Tests/  xUnit suite for the core (600 tests)
   Ghasaq.Core.Build/  compiles Core/ as a portable netstandard2.1 library
   Godot/                   the headless Godot smoke test
 Tools/                   command-line verification and build scripts

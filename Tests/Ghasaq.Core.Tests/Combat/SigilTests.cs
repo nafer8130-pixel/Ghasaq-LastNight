@@ -584,6 +584,25 @@ namespace Ghasaq.Core.Tests.Combat
             Assert.Equal(35f, bearer.Sigil.ShieldRemaining, 3);
         }
 
+        [Fact]
+        public void Revival_ReArmsThePrice()
+        {
+            Combatant bearer = Sigilbearer(GameContent.SigilGlass, maxHealth: 100f, attackPower: 100f);
+
+            bearer.ReceiveDamage(new DamageResult(100f, 100f, 100f, false, 0f), null);
+            Assert.False(bearer.Sigil.ShieldActive);
+            Assert.True(bearer.Statuses.Has(StatusKind.Marked));
+
+            bearer.Revive(Float3.Zero, 0f);
+
+            // The boss-retry path: a revival is a full re-arm, so a retry does
+            // not start with a broken shield or a pending burst.
+            Assert.True(bearer.Sigil.ShieldActive);
+            Assert.Equal(35f, bearer.Sigil.ShieldRemaining, 3);
+            Assert.False(bearer.Statuses.Has(StatusKind.Marked));
+            Assert.False(bearer.Sigil.TryTakeShatter(out _, out _), "a revival must not leave a shatter pending.");
+        }
+
         // --------------------------------- carrying --------------------------------
 
         [Fact]
