@@ -54,6 +54,13 @@ New in code:
 **Not measured:** the affix names on screen are drawing, never *seen* — the
 smoke test's glyph sweep covers the row it builds, and nothing more.
 
+Both workflows ran on GitHub for the change, on `7f599c0`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #23 | **success** — naming gate, purity, the 655 tests, layout, build, smoke (62 checks) |
+| `android.yml` | Android ARM64 #23 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
 ## The Forge: the Soot sink (2026-10-04)
 
 The second half of plan §3.3 lands: the Hearth's hammer spends the banked
