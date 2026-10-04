@@ -57,6 +57,14 @@ namespace Ghasaq.Core.Content
         public const string RegionWard = "sunken-ward";
         public const string RegionSanctum = "ghasaq-sanctum";
 
+        // --------------------------------- sigils --------------------------------
+
+        public const string SigilLantern = "lantern";
+        public const string SigilAsh = "ash";
+        public const string SigilSilence = "silence";
+        public const string SigilHunger = "hunger";
+        public const string SigilGlass = "glass";
+
         // --------------------------------- story ---------------------------------
 
         public const string ChapterAshAndSilence = "ch-ash-and-silence";
@@ -312,6 +320,83 @@ namespace Ghasaq.Core.Content
                     }
                 }
             };
+        }
+
+        /// <summary>
+        /// The five الوَسْم / Sigils of the slice, and the الثمن / Prices they
+        /// charge. Numbers live in <see cref="SigilTuning"/>; the lines here are
+        /// what the player is meant to read, in the product's Arabic-first
+        /// voice, with the English name kept for code and tooling.
+        ///
+        /// Every Price line is written to be shown on the HUD at all times
+        /// (plan section 3.2). Content validation refuses a Sigil without one.
+        /// </summary>
+        public static List<SigilDefinition> BuildSigils()
+        {
+            return new List<SigilDefinition>
+            {
+                new SigilDefinition
+                {
+                    Id = SigilLantern,
+                    Kind = SigilId.Lantern,
+                    DisplayName = "المشكاة",
+                    EnglishName = "Lantern",
+                    VerbLine = "ومضة قصيرة تنقلك 5.5 م، مع لحظة مناعة 0.2 ث.",
+                    PriceLine = "بعد كل ومضة يلتقطك كل عدو ضمن 15 م لمدة 2 ث — حتى عبر الغطاء."
+                },
+                new SigilDefinition
+                {
+                    Id = SigilAsh,
+                    Kind = SigilId.Ash,
+                    DisplayName = "الرماد",
+                    EnglishName = "Ash",
+                    VerbLine = "كل قتيل ينفجر في محيط 2.5 م بما يعادل 60% من قوة هجومك.",
+                    PriceLine = "25% من الضرر الزائد عن قتل الهدف يرتد إليك."
+                },
+                new SigilDefinition
+                {
+                    Id = SigilSilence,
+                    Kind = SigilId.Silence,
+                    DisplayName = "الصمت",
+                    EnglishName = "Silence",
+                    VerbLine = "ضربة من الخلف على عدو غافل ×2.5، وإعدام فوري تحت 20% صحة.",
+                    PriceLine = "أطول قدرة تحضيرًا مقفلة عليك ما دام الوَسْم مجهزًا."
+                },
+                new SigilDefinition
+                {
+                    Id = SigilHunger,
+                    Kind = SigilId.Hunger,
+                    DisplayName = "الجوع",
+                    EnglishName = "Hunger",
+                    VerbLine = "كل ضربة تسددها تشفيك بنسبة 8% من ضررها.",
+                    PriceLine = "بعد 8 ثوانٍ دون تسديد ضربة، يبدأ جوع الغَسَق فيك حتى تسدد."
+                },
+                new SigilDefinition
+                {
+                    Id = SigilGlass,
+                    Kind = SigilId.Glass,
+                    DisplayName = "الزجاج",
+                    EnglishName = "Glass",
+                    VerbLine = "درع يصدّ نصف الضرر الواصل، وعند انكساره يتشظّى في محيط 2.5 م.",
+                    PriceLine = "بعد الانكسار تبقى مكشوفًا 2 ث (ضرر متلقى +25%)، ويعود الدرع بعد 12 ث."
+                }
+            };
+        }
+
+        /// <summary>Finds a Sigil by content id, or null. Used by tooling and tests.</summary>
+        public static SigilDefinition FindSigil(string id)
+        {
+            List<SigilDefinition> sigils = BuildSigils();
+
+            for (int i = 0; i < sigils.Count; i++)
+            {
+                if (string.Equals(sigils[i].Id, id, StringComparison.Ordinal))
+                {
+                    return sigils[i];
+                }
+            }
+
+            return null;
         }
 
         public static StatGrowth[] BuildPlayerGrowth()
@@ -919,6 +1004,12 @@ namespace Ghasaq.Core.Content
             foreach (KeyValuePair<string, LootTable> entry in tables)
             {
                 session.RegisterLootTable(entry.Value);
+            }
+
+            List<SigilDefinition> sigils = BuildSigils();
+            for (int i = 0; i < sigils.Count; i++)
+            {
+                session.RegisterSigil(sigils[i]);
             }
 
             session.RegionId = RegionCamp;

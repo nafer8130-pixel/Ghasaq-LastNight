@@ -107,6 +107,16 @@ namespace Ghasaq.Core.Combat
         public bool IsPersistent { get; set; }
 
         /// <summary>
+        /// The الوَسْم / Sigil this combatant carries, or null.
+        ///
+        /// The player carries one per run; enemies never do. It hangs off the
+        /// body rather than the driver because that is exactly what a Sigil is
+        /// - a mark on the bearer - and because the damage pipeline sees
+        /// combatants, not drivers, when it needs to charge a Price.
+        /// </summary>
+        public SigilLoadout Sigil { get; set; }
+
+        /// <summary>
         /// Archetype identifier, such as "hollow-walker". Used as the target id in
         /// quest kill objectives and in encounter bookkeeping, so two instances of
         /// the same creature can share an archetype while keeping distinct ids.
@@ -243,17 +253,40 @@ namespace Ghasaq.Core.Combat
         /// </summary>
         public float ReceiveDamage(in DamageResult result, Combatant source)
         {
+            return ReceiveDamage(result, source, out _);
+        }
+
+        /// <summary>
+        /// As above, and additionally reports how much of the blow was more than
+        /// the target had left. The Ash Price is charged on exactly that amount,
+        /// so overkill has to be measured here - after the Glass shield has had
+        /// its share, and before anything can re-count it.
+        /// </summary>
+        public float ReceiveDamage(in DamageResult result, Combatant source, out float overkill)
+        {
+            overkill = 0f;
+
             if (!IsAlive)
             {
                 return 0f;
+            }
+
+            // The Glass shield takes its share before the blow reaches health.
+            // An open invulnerability window refuses everything, so it is
+            // checked first: a blink that dodges must not also spend the shield.
+            DamageResult effective = result;
+
+            if (Sigil != null && !Vitals.IsInvulnerable)
+            {
+                Sigil.TryAbsorb(result, out effective);
             }
 
             // The full result is carried through to the health pool, so the
             // Damaged event can report armour and crit detail rather than just a
             // number. The pool raises the event, which is what makes every damage
             // path - attack or damage over time - report identically.
-            _pendingResult = result;
-            float applied = Vitals.ApplyDamage(result.Applied, source);
+            _pendingResult = effective;
+            float applied = Vitals.ApplyDamage(effective.Applied, source);
             _pendingResult = null;
 
             if (applied <= 0f)
@@ -263,6 +296,7 @@ namespace Ghasaq.Core.Combat
 
             if (!Vitals.IsAlive)
             {
+                overkill = effective.Applied - applied;
                 AnnounceDeath();
             }
 
@@ -343,6 +377,14 @@ namespace Ghasaq.Core.Combat
             _knockbackSpeed = 0f;
             Statuses.Clear();
             Vitals.ResetToFull();
+
+            // A Sigil's Price is re-armed on revival: a fresh shield, a fresh
+            // famine clock, and no request left over from the death.
+            if (Sigil != null)
+            {
+                Sigil.Reset();
+            }
+
             _position = position;
             _facingDegrees = FMath.Repeat(facingDegrees, 360f);
         }

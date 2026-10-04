@@ -185,6 +185,7 @@ namespace Ghasaq.Core.Ai
         private Float3 _patrolTarget;
         private bool _hasPatrolTarget;
         private bool _pendingAlert;
+        private float _acquiredRemaining;
 
         public EnemyBrain(EnemyBrainSettings settings, DeterministicRng rng)
         {
@@ -229,6 +230,33 @@ namespace Ghasaq.Core.Ai
             _timeSinceLastSeen = 0f;
         }
 
+        /// <summary>
+        /// Forces the enemy to keep reacting to the target for a whole window,
+        /// ignoring facing, distance and cover for as long as it lasts.
+        ///
+        /// This is the Lantern's Price: the light does not merely startle - it
+        /// gives the bearer away, so stepping around a pillar no longer ends the
+        /// chase. Unlike <see cref="ForceAlert"/>, which is a single reaction on
+        /// the next tick, this holds perception open for the window and then
+        /// hands control back to the ordinary sight rules.
+        /// </summary>
+        public void ForceAcquire(float seconds)
+        {
+            _pendingAlert = true;
+            _timeSinceLastSeen = 0f;
+
+            if (seconds > _acquiredRemaining)
+            {
+                _acquiredRemaining = seconds;
+            }
+        }
+
+        /// <summary>Seconds left in a forced acquisition. Zero when none is running.</summary>
+        public float AcquiredRemaining
+        {
+            get { return _acquiredRemaining; }
+        }
+
         /// <summary>Resets the brain to a standing watch. Used when an encounter resets.</summary>
         public void Reset()
         {
@@ -238,6 +266,7 @@ namespace Ghasaq.Core.Ai
             _timeSinceLastSeen = float.MaxValue;
             _hasPatrolTarget = false;
             _pendingAlert = false;
+            _acquiredRemaining = 0f;
         }
 
         public AiIntent Tick(float deltaTime, in AiContext context)
@@ -291,6 +320,27 @@ namespace Ghasaq.Core.Ai
             else if (_timeSinceLastSeen < float.MaxValue)
             {
                 _timeSinceLastSeen += deltaTime;
+            }
+
+            // A forced acquisition overrides the sight result for its window:
+            // the enemy holds the target even around cover. The clock still
+            // runs down, and once it reaches zero the ordinary rules resume
+            // with a fresh last-seen time, so the hysteresis grace is spent
+            // after the window rather than during it.
+            if (_acquiredRemaining > 0f)
+            {
+                perceives = context.HasTarget && context.TargetAlive;
+                _timeSinceLastSeen = 0f;
+
+                if (deltaTime > 0f)
+                {
+                    _acquiredRemaining -= deltaTime;
+
+                    if (_acquiredRemaining < 0f)
+                    {
+                        _acquiredRemaining = 0f;
+                    }
+                }
             }
 
             if (_pendingAlert && context.HasTarget && context.TargetAlive)

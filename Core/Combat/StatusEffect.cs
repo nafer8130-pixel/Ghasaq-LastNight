@@ -25,7 +25,18 @@ namespace Ghasaq.Core.Combat
         Empowered = 5,
 
         /// <summary>Damage taken increased, from being marked by the Ghasaq. Strongest instance applies.</summary>
-        Marked = 6
+        Marked = 6,
+
+        /// <summary>
+        /// Damage over time. Ghasaq. The Hunger Sigil's famine. Sums across
+        /// stacks.
+        ///
+        /// Deliberately its own kind rather than a Burning or a Bleeding: the
+        /// famine is the Price of a Sigil, not a wound, and merging it into a
+        /// shared kind would let an enemy's bleed end it early or hide it on
+        /// the HUD.
+        /// </summary>
+        Starving = 7
     }
 
     /// <summary>What happens when a status is applied while one of its kind is already active.</summary>

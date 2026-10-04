@@ -204,7 +204,7 @@ namespace Ghasaq.Core.Simulation
     /// actually is at the moment of impact, rather than where it was when the
     /// animation started.
     /// </summary>
-    public sealed class EncounterSimulation
+    public sealed class EncounterSimulation : IAwarenessProbe
     {
         private struct Landing
         {
@@ -443,9 +443,11 @@ namespace Ghasaq.Core.Simulation
             CollectLandings(deltaTime);
             InterruptStaggeredCasts();
             AdvanceCombatants(deltaTime);
+            AdvanceSigils(deltaTime);
             Decide();
             Move(deltaTime);
             ResolveLandings();
+            ConsumeSigilRequests();
             RecountHostiles();
         }
 
@@ -761,13 +763,100 @@ namespace Ghasaq.Core.Simulation
                     continue;
                 }
 
+                // `this` answers the awareness question the Silence Price asks:
+                // only a living brain knows whether its owner has noticed.
                 AttackResolver.Resolve(
                     participant.Combatant,
                     ability,
                     _combatants,
                     Rng,
-                    _hitBuffer);
+                    _hitBuffer,
+                    this);
             }
+        }
+
+        /// <summary>Advances every carried Sigil's clock with the fight it belongs to.</summary>
+        private void AdvanceSigils(float deltaTime)
+        {
+            for (int i = 0; i < _participants.Count; i++)
+            {
+                _participants[i].Combatant.Sigil?.Tick(deltaTime);
+            }
+        }
+
+        /// <summary>
+        /// Finishes the Sigil work that needed a world: the Glass shatter bursts
+        /// outward, and every hostile in range of a Lantern blink acquires the
+        /// bearer. Both were recorded during damage resolution, which sees a
+        /// victim but not the combatants around it.
+        /// </summary>
+        private void ConsumeSigilRequests()
+        {
+            for (int i = 0; i < _participants.Count; i++)
+            {
+                Participant participant = _participants[i];
+                SigilLoadout sigil = participant.Combatant.Sigil;
+
+                if (sigil == null || !sigil.HasSigil || !participant.Combatant.IsAlive)
+                {
+                    continue;
+                }
+
+                if (sigil.TryTakeShatter(out float shatterDamage, out float shatterRadius))
+                {
+                    AttackResolver.ApplyRadialBurst(
+                        participant.Combatant,
+                        participant.Combatant.Position,
+                        shatterRadius,
+                        shatterDamage,
+                        DamageType.Physical,
+                        _combatants,
+                        Rng,
+                        hits: null);
+                }
+
+                if (sigil.TryTakeAcquire(out float acquireRadius, out float acquireSeconds))
+                {
+                    AcquireNearby(participant.Combatant, acquireRadius, acquireSeconds);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The Lantern's Price: every hostile within the radius acquires the
+        /// bearer and holds on, cover or not, for the window.
+        /// </summary>
+        private void AcquireNearby(Combatant source, float radius, float seconds)
+        {
+            for (int i = 0; i < _participants.Count; i++)
+            {
+                Participant other = _participants[i];
+
+                if (other.Brain == null || !other.Combatant.IsAlive || !source.IsHostileTo(other.Combatant))
+                {
+                    continue;
+                }
+
+                if (Float3.DistanceXZ(source.Position, other.Combatant.Position) <= radius)
+                {
+                    other.Brain.ForceAcquire(seconds);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether a combatant is currently unaware of being hunted. Only an
+        /// enemy with a brain can be unaware; anything else - the player, a
+        /// scripted dummy - is treated as aware, which withholds the Silence
+        /// execution rather than handing it out.
+        /// </summary>
+        public bool IsUnaware(Combatant target)
+        {
+            Participant participant = FindParticipant(target);
+
+            return participant != null
+                && participant.Brain != null
+                && !participant.Brain.IsAlerted;
         }
 
         private void RecountHostiles()

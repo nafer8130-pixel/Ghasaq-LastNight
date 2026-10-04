@@ -85,6 +85,12 @@ namespace Ghasaq.Core.Serialization
         public List<string> DiscoveredRegions = new List<string>();
 
         /// <summary>
+        /// Content id of the الوَسْم / Sigil the run was carrying, or empty.
+        /// Stored as an id so the save stays valid when Sigils are rebalanced.
+        /// </summary>
+        public string EquippedSigilId = "";
+
+        /// <summary>
         /// Saved generator state, so loot and combat rolls continue from where they
         /// left off rather than restarting. Named for the value it belongs to.
         /// </summary>
@@ -120,6 +126,7 @@ namespace Ghasaq.Core.Serialization
                 Inventory = new List<ItemStack>(Inventory),
                 Equipment = new List<ItemStack>(Equipment),
                 DiscoveredRegions = new List<string>(DiscoveredRegions),
+                EquippedSigilId = EquippedSigilId,
                 Quests = new List<QuestSnapshot>(Quests.Count)
             };
 

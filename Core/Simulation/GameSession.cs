@@ -30,6 +30,7 @@ namespace Ghasaq.Core.Simulation
     public sealed class GameSession
     {
         private readonly Dictionary<string, LootTable> _lootTables;
+        private readonly Dictionary<string, SigilDefinition> _sigils;
         private readonly List<ItemStack> _lootBuffer;
 
         /// <summary>
@@ -60,6 +61,7 @@ namespace Ghasaq.Core.Simulation
             Progression = new ProgressionSystem(Player, curve ?? new ExperienceCurve(), growth);
 
             _lootTables = new Dictionary<string, LootTable>(StringComparer.Ordinal);
+            _sigils = new Dictionary<string, SigilDefinition>(StringComparer.Ordinal);
             _lootBuffer = new List<ItemStack>(8);
 
             Encounter = new EncounterSimulation(rng, bounds, occlusion);
@@ -171,6 +173,84 @@ namespace Ghasaq.Core.Simulation
             }
 
             _lootTables[table.Id] = table;
+        }
+
+        /// <summary>
+        /// Makes a Sigil available to this run. Like loot tables, the session is
+        /// handed content by whoever built it rather than reaching for the
+        /// content module itself: the simulation layer does not know what game
+        /// it is running.
+        /// </summary>
+        public void RegisterSigil(SigilDefinition definition)
+        {
+            if (definition == null || string.IsNullOrEmpty(definition.Id))
+            {
+                return;
+            }
+
+            _sigils[definition.Id] = definition;
+        }
+
+        /// <summary>The الوَسْم / Sigil this run carries, or null while it carries none.</summary>
+        public SigilDefinition EquippedSigil
+        {
+            get { return Player.Sigil == null ? null : Player.Sigil.Definition; }
+        }
+
+        /// <summary>
+        /// Takes up a Sigil, applying the one hard swap rule of the slice: a
+        /// Sigil is chosen at the Hearth, never mid-fight (plan section 3.1).
+        /// Equipping is the only way a loadout appears on the player, so an
+        /// enemy can never be carrying one by accident.
+        /// </summary>
+        public bool TryEquipSigil(string sigilId, out SigilEquipFailure failure)
+        {
+            failure = SigilEquipFailure.UnknownSigil;
+
+            if (string.IsNullOrEmpty(sigilId) || !_sigils.TryGetValue(sigilId, out SigilDefinition definition))
+            {
+                return false;
+            }
+
+            if (Encounter.HostilesRemaining > 0)
+            {
+                failure = SigilEquipFailure.InCombat;
+                return false;
+            }
+
+            if (Player.Sigil == null)
+            {
+                Player.Sigil = new SigilLoadout(Player);
+            }
+
+            Player.Sigil.Equip(definition);
+            failure = SigilEquipFailure.None;
+            return true;
+        }
+
+        /// <summary>
+        /// Applies a sigil id from a save. A save naming a Sigil this build does
+        /// not know is left unequipped rather than failing the load: the rest of
+        /// the character is still perfectly playable.
+        /// </summary>
+        private void RestoreSigil(string sigilId)
+        {
+            if (!string.IsNullOrEmpty(sigilId)
+                && _sigils.TryGetValue(sigilId, out SigilDefinition definition))
+            {
+                if (Player.Sigil == null)
+                {
+                    Player.Sigil = new SigilLoadout(Player);
+                }
+
+                Player.Sigil.Equip(definition);
+                return;
+            }
+
+            if (Player.Sigil != null)
+            {
+                Player.Sigil.Unequip();
+            }
         }
 
         /// <summary>Replaces the encounter, for moving to a new region. Subscriptions are rewired.</summary>
@@ -755,6 +835,9 @@ namespace Ghasaq.Core.Simulation
                 Equipment = Equipment.ToStacks(),
                 Quests = CollectQuestSnapshots(),
                 DiscoveredRegions = new List<string>(DiscoveredRegions),
+                EquippedSigilId = Player.Sigil != null && Player.Sigil.Definition != null
+                    ? Player.Sigil.Definition.Id
+                    : "",
                 RngState = Rng.State,
                 RngIncrement = Rng.Increment
             };
@@ -790,6 +873,10 @@ namespace Ghasaq.Core.Simulation
             Inventory.LoadFrom(save.Inventory, out _);
             Equipment.LoadFrom(save.Equipment);
             ApplyQuestSnapshots(save.Quests);
+
+            // The carried Sigil is content the session was handed, so it is
+            // restored by id after the content is registered.
+            RestoreSigil(save.EquippedSigilId);
 
             DiscoveredRegions = save.DiscoveredRegions == null
                 ? new List<string>()

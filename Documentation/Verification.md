@@ -4,6 +4,53 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## The five الوَسْم / Sigils in the Core (2026-10-04)
+
+[Documentation/Sigils.md](Sigils.md) is no longer a design in prose only: all
+five verbs and all five Prices are code, and each one is pinned by a test.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **599 passed, 0 failed** (239 ms; 567 before this change) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 16/16 checks** |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 300` | **Pass** — `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 103,550,360 bytes (98 MB) |
+
+The fresh APK was inspected with the Android SDK's own tools, as before:
+`package=com.ghasaq.thelastnight`, `targetSdkVersion=35`, launcher label
+`غَسَق: الليلة الأخيرة`, `native-code: arm64-v8a`, with both
+`assets/.godot/mono/publish/arm64/Ghasaq.dll` and `Ghasaq.Core.dll` inside, signed
+by Godot's certificate.
+
+New in code:
+
+- `Core/Combat/Sigil.cs` — the id, the definition (name, verb line, Price line),
+  the awareness probe and every draft number in `SigilTuning`.
+- `Core/Combat/SigilLoadout.cs` — the carried Sigil's runtime: the blink's
+  i-frames, the acquisition request, the overkill bite, the heal and the famine
+  clock, the shield, the exposure and the shatter request.
+- The hooks: `Vitals.GrantInvulnerability` (a window every damage path
+  respects), `StatusKind.Starving` (the famine, deliberately not a Bleeding),
+  `StatusEffectSystem.Apply` returning the live effect plus `Contains`/`Remove`,
+  `EnemyBrain.ForceAcquire` (holds a target through cover for its window),
+  `Combatant.ReceiveDamage` reporting overkill and letting the shield take its
+  share, `AbilityFailure.Locked` and `LoudestAbilityIndex` on the controller,
+  and `EncounterSimulation` advancing Sigils and finishing their world requests.
+- Carrying: `GameSession.TryEquipSigil` refuses mid-fight, and the carried id
+  round-trips through a save. `ContentValidator` now fails a Sigil with no Price
+  line, with fault-injection tests proving the rule fires.
+
+**Not measured:** the feel gate of [Sigils.md](Sigils.md) — whether a player can
+say what their Sigil does and what it costs within one fight — is a designer and
+playtest question. The HUD does not draw the Price line yet (the Core exposes it
+and the intent to show it lives in the contract), and none of these five has been
+played on a device. The numbers are still draft: what is verified is the
+behaviour, not that the tuning is fun.
+
 ## After the naming change (2026-10-04)
 
 The product, its packages and its assemblies were renamed to غَسَق / GHASAQ and

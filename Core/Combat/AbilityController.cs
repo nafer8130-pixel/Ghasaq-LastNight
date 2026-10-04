@@ -13,7 +13,10 @@ namespace Ghasaq.Core.Combat
         NotEnoughStamina = 3,
         Busy = 4,
         Stunned = 5,
-        Dead = 6
+        Dead = 6,
+
+        /// <summary>Sealed by a Sigil's Price - the Silence Sigil's defender, today.</summary>
+        Locked = 7
     }
 
     /// <summary>Where the caster is in the commit-to-an-ability cycle.</summary>
@@ -48,6 +51,9 @@ namespace Ghasaq.Core.Combat
         private readonly AbilityDefinition[] _abilities;
         private readonly float[] _cooldownRemaining;
 
+        /// <summary>Index of the longest wind-up. Fixed at construction; content is not mutated at runtime.</summary>
+        private readonly int _loudestIndex;
+
         private int _castingIndex;
         private float _phaseTimer;
 
@@ -69,6 +75,23 @@ namespace Ghasaq.Core.Combat
             _castingIndex = -1;
             _phaseTimer = 0f;
             Phase = CastPhase.Ready;
+
+            // "Your loudest ability" is the one with the biggest wind-up. Ties
+            // go to the earlier ability, so the choice is stable and readable
+            // rather than dependent on iteration order.
+            _loudestIndex = -1;
+            float longest = -1f;
+
+            for (int i = 0; i < _abilities.Length; i++)
+            {
+                float windup = _abilities[i].WindupSeconds;
+
+                if (windup > longest)
+                {
+                    longest = windup;
+                    _loudestIndex = i;
+                }
+            }
         }
 
         public int Count
@@ -111,6 +134,31 @@ namespace Ghasaq.Core.Combat
             return index >= 0 && index < _cooldownRemaining.Length ? _cooldownRemaining[index] : 0f;
         }
 
+        /// <summary>Index of the ability with the longest wind-up, or -1 when there are none.</summary>
+        public int LoudestAbilityIndex
+        {
+            get { return _loudestIndex; }
+        }
+
+        /// <summary>
+        /// Index currently sealed by the carried Sigil, or -1. The HUD reads
+        /// this to mark the button, so the lock can never be invisible: the
+        /// plan says a Price the player cannot see is not a Price.
+        /// </summary>
+        public int LockedAbilityIndex
+        {
+            get { return IsLocked(_loudestIndex) ? _loudestIndex : -1; }
+        }
+
+        /// <summary>True when this index is sealed by the current Sigil's Price.</summary>
+        public bool IsLocked(int index)
+        {
+            return index >= 0
+                && index == _loudestIndex
+                && _self.Sigil != null
+                && _self.Sigil.LocksLoudestAbility;
+        }
+
         /// <summary>Fraction of the cooldown still to run, 1 when just used and 0 when ready.</summary>
         public float CooldownFraction(int index)
         {
@@ -135,6 +183,11 @@ namespace Ghasaq.Core.Combat
                 return false;
             }
 
+            if (IsLocked(index))
+            {
+                return false;
+            }
+
             return _cooldownRemaining[index] <= 0f;
         }
 
@@ -153,6 +206,11 @@ namespace Ghasaq.Core.Combat
             if (!_self.IsAlive)
             {
                 return AbilityFailure.Dead;
+            }
+
+            if (IsLocked(index))
+            {
+                return AbilityFailure.Locked;
             }
 
             if (_self.IsStunned)
@@ -202,6 +260,15 @@ namespace Ghasaq.Core.Combat
             _phaseTimer = ability.WindupSeconds;
             Phase = CastPhase.Windup;
             _landedThisTick = -1;
+
+            // The Lantern's blink opens its i-frame window at commitment, so
+            // the window covers the reposition itself rather than only what
+            // follows it. Interrupting the wind-up still spends the window: the
+            // Price of carrying the light does not wait for the outcome.
+            if (ability.Kind == AbilityKind.Dash)
+            {
+                _self.Sigil?.NotifyDashStarted();
+            }
 
             // An ability with no windup is left in the Windup phase with a zero
             // timer, and lands on the next Tick. It is deliberately NOT landed

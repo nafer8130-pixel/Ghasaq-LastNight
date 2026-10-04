@@ -29,6 +29,7 @@ namespace Ghasaq.Core.Tests.Content
             public List<ChapterDefinition> Chapters;
             public List<RegionDefinition> Regions;
             public List<AbilityDefinition> Abilities;
+            public List<SigilDefinition> Sigils;
 
             public static Shipped Build()
             {
@@ -40,14 +41,15 @@ namespace Ghasaq.Core.Tests.Content
                     Quests = GameContent.BuildQuests(),
                     Chapters = GameContent.BuildChapters(),
                     Regions = GameContent.BuildRegions(),
-                    Abilities = GameContent.BuildPlayerAbilities()
+                    Abilities = GameContent.BuildPlayerAbilities(),
+                    Sigils = GameContent.BuildSigils()
                 };
             }
 
             public ContentReport Validate()
             {
                 return ContentValidator.Validate(
-                    Items, Archetypes, LootTables, Quests, Chapters, Regions, Abilities);
+                    Items, Archetypes, LootTables, Quests, Chapters, Regions, Abilities, Sigils);
             }
 
             public int ErrorCount()
@@ -100,6 +102,33 @@ namespace Ghasaq.Core.Tests.Content
             Assert.True(report.QuestCount > 0);
             Assert.True(report.ChapterCount > 0);
             Assert.True(report.RegionCount > 0);
+            Assert.True(report.SigilCount > 0);
+        }
+
+        [Fact]
+        public void ASigilWithoutAPriceLine_IsReported()
+        {
+            // The contract the Sigil system enforces in code: no Price the HUD
+            // can show, no Sigil. A cost the player never sees is not a Price.
+            Shipped content = Shipped.Build();
+            content.Sigils[0].PriceLine = "";
+
+            ContentReport report = content.Validate();
+
+            Assert.True(report.ErrorCount > 0);
+            Assert.True(Mentions(report, "Price"), Describe(report));
+        }
+
+        [Fact]
+        public void ASigilWithNoBehaviour_IsReported()
+        {
+            Shipped content = Shipped.Build();
+            content.Sigils[1].Kind = SigilId.None;
+
+            ContentReport report = content.Validate();
+
+            Assert.True(report.ErrorCount > 0);
+            Assert.True(Mentions(report, "behaviour"), Describe(report));
         }
 
         [Fact]

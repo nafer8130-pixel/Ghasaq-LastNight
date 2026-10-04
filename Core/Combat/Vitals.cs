@@ -23,6 +23,7 @@ namespace Ghasaq.Core.Combat
 
         private float _health;
         private float _stamina;
+        private float _invulnerableRemaining;
         private bool _initialized;
 
         public Vitals(StatSet stats, ResistanceSet resistance)
@@ -100,6 +101,42 @@ namespace Ghasaq.Core.Combat
             get { return _health > 0f; }
         }
 
+        /// <summary>
+        /// True while an invulnerability window is open. The Lantern's blink is
+        /// the first thing to open one, but the concept is generic - a dodge is
+        /// a dodge - so it lives here, at the single point every damage path
+        /// goes through.
+        /// </summary>
+        public bool IsInvulnerable
+        {
+            get { return _invulnerableRemaining > 0f; }
+        }
+
+        /// <summary>Seconds left in the current window. Zero when none is open.</summary>
+        public float InvulnerableRemaining
+        {
+            get { return _invulnerableRemaining; }
+        }
+
+        /// <summary>
+        /// Opens a window in which no damage lands, from any source. A longer
+        /// window replaces a shorter one and a shorter one never cuts a longer
+        /// one short, so overlapping grants cannot cheat a dodge out of its
+        /// full length.
+        /// </summary>
+        public void GrantInvulnerability(float seconds)
+        {
+            if (seconds <= 0f)
+            {
+                return;
+            }
+
+            if (seconds > _invulnerableRemaining)
+            {
+                _invulnerableRemaining = seconds;
+            }
+        }
+
         public bool IsInitialized
         {
             get { return _initialized; }
@@ -110,6 +147,7 @@ namespace Ghasaq.Core.Combat
         {
             _health = MaxHealth;
             _stamina = MaxStamina;
+            _invulnerableRemaining = 0f;
             _initialized = true;
         }
 
@@ -124,6 +162,18 @@ namespace Ghasaq.Core.Combat
             if (!_initialized)
             {
                 return;
+            }
+
+            // Invulnerability runs on its own clock. It is advanced even for a
+            // corpse so that nothing can be revived still holding an old window.
+            if (_invulnerableRemaining > 0f)
+            {
+                _invulnerableRemaining -= deltaTime;
+
+                if (_invulnerableRemaining < 0f)
+                {
+                    _invulnerableRemaining = 0f;
+                }
             }
 
             // A dead pool never regenerates.
@@ -174,11 +224,13 @@ namespace Ghasaq.Core.Combat
         /// <summary>
         /// Removes health and returns the amount actually applied, which is less
         /// than requested when the blow is lethal. Returns 0 for a corpse, so
-        /// overkill damage cannot be re-counted by a second attacker.
+        /// overkill damage cannot be re-counted by a second attacker, and 0
+        /// while an invulnerability window is open, so a dodge covers blows and
+        /// lingering damage alike.
         /// </summary>
         public float ApplyDamage(float amount, object source)
         {
-            if (amount <= 0f || !_initialized || !IsAlive)
+            if (amount <= 0f || !_initialized || !IsAlive || _invulnerableRemaining > 0f)
             {
                 return 0f;
             }

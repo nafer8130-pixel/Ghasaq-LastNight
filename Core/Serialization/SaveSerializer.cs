@@ -68,6 +68,7 @@ namespace Ghasaq.Core.Serialization
             data.Set("equipment", StacksToJson(save.Equipment));
             data.Set("quests", QuestsToJson(save.Quests));
             data.Set("discoveredRegions", StringsToJson(save.DiscoveredRegions));
+            data.Set("sigil", save.EquippedSigilId ?? "");
             data.Set("rngState", save.RngState.ToString(CultureInfo.InvariantCulture));
             data.Set("rngIncrement", save.RngIncrement.ToString(CultureInfo.InvariantCulture));
 
@@ -142,6 +143,7 @@ namespace Ghasaq.Core.Serialization
             save.Equipment = StacksFromJson(data.Get("equipment"));
             save.Quests = QuestsFromJson(data.Get("quests"));
             save.DiscoveredRegions = data.Get("discoveredRegions")?.AsStringList() ?? new List<string>();
+            save.EquippedSigilId = data.Get("sigil")?.AsString("") ?? "";
 
             save.RngState = ParseUnsigned(data.Get("rngState"), 0UL);
             save.RngIncrement = ParseUnsigned(data.Get("rngIncrement"), 1UL);

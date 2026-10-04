@@ -10,7 +10,7 @@ namespace Ghasaq.Core.Combat
     ///
     /// Two behavioural groups, chosen so that neither can run away:
     ///
-    ///   Damage over time (Burning, Bleeding) - magnitudes SUM across stacks.
+    ///   Damage over time (Burning, Bleeding, Starving) - magnitudes SUM across stacks.
     ///   Five bleeds means five bleeds' worth of damage per tick. Stacks are
     ///   capped per effect.
     ///
@@ -118,18 +118,24 @@ namespace Ghasaq.Core.Combat
         /// Applies an effect, honouring its stacking rule and the target's
         /// Resolve. The incoming instance is not stored directly, so callers can
         /// safely reuse a template object.
+        ///
+        /// Returns the live effect that resulted, or null when nothing was
+        /// applied. Callers that later need to end the effect early - the
+        /// Hunger famine is the first - keep the returned reference and pass it
+        /// to <see cref="Remove"/>, rather than searching by kind and risking
+        /// ending somebody else's application of the same kind.
         /// </summary>
-        public void Apply(StatusEffect incoming)
+        public StatusEffect Apply(StatusEffect incoming)
         {
             if (incoming == null || !_vitals.IsAlive)
             {
-                return;
+                return null;
             }
 
             float duration = ScaleDuration(incoming.Duration);
             if (duration <= 0f)
             {
-                return;
+                return null;
             }
 
             StatusEffect existing = Find(incoming.Kind);
@@ -152,7 +158,7 @@ namespace Ghasaq.Core.Combat
 
                 _active.Add(created);
                 Applied?.Invoke(created);
-                return;
+                return created;
             }
 
             switch (existing.StackRule)
@@ -173,19 +179,19 @@ namespace Ghasaq.Core.Combat
                     }
 
                     Applied?.Invoke(existing);
-                    return;
+                    return existing;
 
                 case StatusStackRule.Ignore:
                     if (incoming.Magnitude <= existing.Magnitude)
                     {
-                        return;
+                        return existing;
                     }
 
                     existing.Magnitude = incoming.Magnitude;
                     existing.Remaining = duration;
                     existing.Source = incoming.Source;
                     Applied?.Invoke(existing);
-                    return;
+                    return existing;
 
                 default:
                     existing.Remaining = duration > existing.Remaining ? duration : existing.Remaining;
@@ -196,7 +202,7 @@ namespace Ghasaq.Core.Combat
                     }
 
                     Applied?.Invoke(existing);
-                    return;
+                    return existing;
             }
         }
 
@@ -251,6 +257,34 @@ namespace Ghasaq.Core.Combat
         public bool Has(StatusKind kind)
         {
             return Find(kind) != null;
+        }
+
+        /// <summary>True while this exact instance is still live on the combatant.</summary>
+        public bool Contains(StatusEffect effect)
+        {
+            return effect != null && _active.Contains(effect);
+        }
+
+        /// <summary>
+        /// Removes one specific live instance and reports whether it was there.
+        /// Used to end an effect whose duration is not what ends it.
+        /// </summary>
+        public bool Remove(StatusEffect effect)
+        {
+            if (effect == null)
+            {
+                return false;
+            }
+
+            int index = _active.IndexOf(effect);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            _active.RemoveAt(index);
+            Expired?.Invoke(effect);
+            return true;
         }
 
         public int StackCount(StatusKind kind)
@@ -342,7 +376,9 @@ namespace Ghasaq.Core.Combat
 
         public static bool IsDamageOverTime(StatusKind kind)
         {
-            return kind == StatusKind.Burning || kind == StatusKind.Bleeding;
+            return kind == StatusKind.Burning
+                || kind == StatusKind.Bleeding
+                || kind == StatusKind.Starving;
         }
 
         private StatusEffect Find(StatusKind kind)

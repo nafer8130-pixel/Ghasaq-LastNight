@@ -71,6 +71,8 @@ namespace Ghasaq.Core.Content
 
         public int AbilityCount { get; internal set; }
 
+        public int SigilCount { get; internal set; }
+
         public int ErrorCount
         {
             get
@@ -103,7 +105,8 @@ namespace Ghasaq.Core.Content
         public string Summary()
         {
             return ItemCount + " items, " + ArchetypeCount + " archetypes, " + LootTableCount +
-                   " loot tables, " + AbilityCount + " player abilities, " + QuestCount + " quests, " +
+                   " loot tables, " + AbilityCount + " player abilities, " + SigilCount + " Sigils, " +
+                   QuestCount + " quests, " +
                    ChapterCount + " chapters, " + RegionCount + " regions - " +
                    (IsClean
                        ? (WarningCount == 0 ? "no problems." : WarningCount + " warning(s).")
@@ -152,7 +155,8 @@ namespace Ghasaq.Core.Content
                 GameContent.BuildQuests(),
                 GameContent.BuildChapters(),
                 GameContent.BuildRegions(),
-                GameContent.BuildPlayerAbilities());
+                GameContent.BuildPlayerAbilities(),
+                GameContent.BuildSigils());
         }
 
         public static ContentReport Validate(
@@ -162,7 +166,8 @@ namespace Ghasaq.Core.Content
             IReadOnlyList<QuestDefinition> quests,
             IReadOnlyList<ChapterDefinition> chapters,
             IReadOnlyList<RegionDefinition> regions,
-            IReadOnlyList<AbilityDefinition> playerAbilities)
+            IReadOnlyList<AbilityDefinition> playerAbilities,
+            IReadOnlyList<SigilDefinition> sigils = null)
         {
             var report = new ContentReport(16);
 
@@ -173,6 +178,7 @@ namespace Ghasaq.Core.Content
             chapters = chapters ?? new List<ChapterDefinition>();
             regions = regions ?? new List<RegionDefinition>();
             playerAbilities = playerAbilities ?? new List<AbilityDefinition>();
+            sigils = sigils ?? new List<SigilDefinition>();
 
             report.ItemCount = items.Count;
             report.ArchetypeCount = archetypes.Count;
@@ -181,6 +187,7 @@ namespace Ghasaq.Core.Content
             report.ChapterCount = chapters.Count;
             report.RegionCount = regions.Count;
             report.AbilityCount = playerAbilities.Count;
+            report.SigilCount = sigils.Count;
 
             var itemIds = CollectItemIds(items);
             var archetypeIds = CollectIds(archetypes, a => a.Id);
@@ -191,6 +198,7 @@ namespace Ghasaq.Core.Content
             ValidateLootTables(report, lootTables, itemIds);
             ValidateArchetypes(report, archetypes, lootTables);
             ValidatePlayerAbilities(report, playerAbilities);
+            ValidateSigils(report, sigils);
             ValidateQuests(report, quests, questIds, archetypeIds, itemIds, regionIds, chapterIds);
             ValidateChapters(report, chapters, questIds, chapterIds, regionIds);
             ValidateRegions(report, regions, regionIds, chapterIds, lootTables);
@@ -481,6 +489,65 @@ namespace Ghasaq.Core.Content
                             "Is a " + ability.Kind + " with range " + ability.Range +
                             ", so it can never reach anything.");
                     }
+                }
+            }
+        }
+
+        // ---------------------------------- sigils --------------------------------
+
+        /// <summary>
+        /// Checks the Sigils a run can carry. The contract they are held to is
+        /// the design one: every Sigil must do something, and every Sigil must
+        /// name its Price in a line the HUD can show. A missing Price line is an
+        /// error, not a warning - a cost the player never sees is not a Price.
+        /// </summary>
+        private static void ValidateSigils(ContentReport report, IReadOnlyList<SigilDefinition> sigils)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+
+            for (int i = 0; i < sigils.Count; i++)
+            {
+                SigilDefinition sigil = sigils[i];
+
+                if (sigil == null)
+                {
+                    report.Error(string.Empty, "Null Sigil at index " + i + ".");
+                    continue;
+                }
+
+                string id = sigil.Id;
+
+                if (string.IsNullOrEmpty(id))
+                {
+                    report.Error(string.Empty, "Sigil at index " + i + " has no id.");
+                    continue;
+                }
+
+                if (!seen.Add(id))
+                {
+                    report.Error(id, "Duplicate Sigil id. One of them is unreachable.");
+                }
+
+                if (sigil.Kind == SigilId.None)
+                {
+                    report.Error(id, "Is authored with no behaviour, so nothing would ever happen.");
+                }
+
+                if (string.IsNullOrEmpty(sigil.DisplayName) || string.IsNullOrEmpty(sigil.EnglishName))
+                {
+                    report.Error(id, "Has no display name.");
+                }
+
+                if (string.IsNullOrEmpty(sigil.PriceLine))
+                {
+                    report.Error(
+                        id,
+                        "Has no Price line. A Price the HUD cannot show is not a Price (plan section 3.2).");
+                }
+
+                if (string.IsNullOrEmpty(sigil.VerbLine))
+                {
+                    report.Warn(id, "Has no verb line, so the player cannot read what it does.");
                 }
             }
         }

@@ -178,6 +178,59 @@ namespace Ghasaq.Core.Tests.Ai
             Assert.Equal(AiState.Idle, brain.State);
         }
 
+        [Fact]
+        public void WithoutForcedAcquisition_AHiddenTargetIsNeverNoticed()
+        {
+            // The control for the two tests below: behind cover and beyond
+            // proximity, this same context is invisible to an ordinary brain.
+            EnemyBrain brain = MakeBrain();
+
+            TickFor(brain, Ctx(new Float3(0f, 0f, -6f), lineOfSight: false), 2f);
+
+            Assert.Equal(AiState.Idle, brain.State);
+        }
+
+        [Fact]
+        public void ForceAcquire_HoldsThroughCoverForItsWindow()
+        {
+            EnemyBrain brain = MakeBrain();
+            AiContext hidden = Ctx(new Float3(0f, 0f, -6f), lineOfSight: false);
+
+            brain.ForceAcquire(2f);
+            brain.Tick(0.1f, hidden);
+
+            Assert.Equal(AiState.Alert, brain.State);
+
+            // The reaction ends, but the acquisition does not: it keeps holding
+            // even though the target is still out of sight.
+            TickFor(brain, hidden, 1f);
+            Assert.True(brain.IsAlerted);
+            Assert.True(brain.AcquiredRemaining > 0f);
+
+            // Once the window is spent, the ordinary rules take over: the grace
+            // for lost sight is what decides, not the acquisition.
+            TickFor(brain, hidden, 1.5f);
+            Assert.Equal(0f, brain.AcquiredRemaining, 3);
+            Assert.True(brain.IsAlerted, "the lost-sight grace continues after the window.");
+
+            TickFor(brain, hidden, 5f);
+            Assert.Equal(AiState.Idle, brain.State);
+        }
+
+        [Fact]
+        public void ForceAcquire_TakesTheLongerOfTwoWindows()
+        {
+            EnemyBrain brain = MakeBrain();
+
+            brain.ForceAcquire(0.5f);
+            brain.ForceAcquire(2f);
+
+            Assert.Equal(2f, brain.AcquiredRemaining, 3);
+
+            brain.ForceAcquire(0.5f);
+            Assert.Equal(2f, brain.AcquiredRemaining, 3);
+        }
+
         // --------------------------------- reactions -------------------------------
 
         [Fact]

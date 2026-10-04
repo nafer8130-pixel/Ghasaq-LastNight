@@ -4,6 +4,14 @@
 Numbers marked *draft* are placeholders to be tuned in the slice; the plan moves
 them to Remote Config in a later phase. Terms: [Naming.md](Naming.md).
 
+**Implemented in the Core (2026-10-04).** Every rule described below is now
+code: the definitions and lines live in `GameContent.BuildSigils()`, the numbers
+in `SigilTuning`, the runtime state in `SigilLoadout`, and the hooks in
+`AttackResolver`, `Combatant`, `AbilityController`, `EnemyBrain` and
+`EncounterSimulation`. The numbers remain draft: what is signed off is the
+behaviour, not the tuning. `SigilTests` pins each verb and each Price, and
+content validation refuses a Sigil that has no Price line to show.
+
 ## The contract (plan §3.1–3.2)
 
 - The player carries **one** الوَسْم / Sigil per run, swapped at the الموقد /
@@ -25,8 +33,14 @@ short i-frame window *draft* ~0.2 s.
 **The Price:** your light marks you. After each blink, every hostile within
 *draft* ~15 m acquires you for *draft* ~2 s, even around cover.
 
-**In the Core today:** the dash shape exists (`AbilityKind.Dash`,
-`DashDistance`); i-frames and the "acquired" flag are new hooks for the slice.
+**In the Core now:** the kit's dash *is* the blink. Committing to a
+`AbilityKind.Dash` opens the i-frame window (`AbilityController` calls
+`SigilLoadout.NotifyDashStarted`, backed by the generic
+`Vitals.GrantInvulnerability`), and landing it charges the Price: the request is
+queued and the encounter hands every hostile within the radius a forced
+acquisition (`EnemyBrain.ForceAcquire`), which holds through cover for the whole
+window. The i-frame window refuses blows and lingering damage alike; a blink
+that dodges does not spend the Glass shield.
 
 *في سطر: ورقة هروب تكشفك.*
 
@@ -38,8 +52,12 @@ corpse, *draft* 2.5 m, 60% of your AttackPower.
 **The Price:** you take a share of the **overkill** — damage beyond the target's
 remaining health comes back at you at *draft* 25%.
 
-**In the Core today:** `Combatant.Died` exists (the hook); the damage pipeline
-would report the overkill amount so the burst and the bite can be computed.
+**In the Core now:** `Combatant.ReceiveDamage` reports the overkill, measured
+after other defences have taken their share. The strike charges the bite
+immediately (`SigilLoadout.NotifyKill`), and the burst is resolved in
+`AttackResolver.Resolve` - the one place that holds the target list - as a plain
+radial hit that cannot crit, cannot apply on-hit effects, and deliberately
+cannot burst again, so one swing can never become a chain reaction.
 
 *في سطر: تقتل فيتفتّت، والزائد يعضّك.*
 
@@ -51,8 +69,14 @@ target *draft* ×2.5, instant if it is already below *draft* ~20% health.
 **The Price:** your loudest ability is **locked** while the Sigil is equipped —
 the one with the biggest wind-up — and the lock is visible on its HUD button.
 
-**In the Core today:** behind-checks and awareness live in the AI and attack
-resolution; the lockout is an `AbilityController` rule keyed on an ability tag.
+**In the Core now:** "from behind" is `AttackResolver.IsBehind` (the target's
+rear half-plane), and "unaware" comes from the brain through the
+`IAwarenessProbe` the encounter implements - only an enemy that has not noticed
+the fight can be executed. Below the threshold the blow bypasses armour,
+resistance and crit; above it, it merely lands multiplied. The Price is a lock
+on the longest wind-up: `AbilityController` computes `LoudestAbilityIndex`,
+refuses it with `AbilityFailure.Locked`, and exposes `LockedAbilityIndex` so the
+HUD button can be marked. In the shipped kit the sealed ability is `sunder`.
 
 *في سطر: تقتل من الخلف، ويُقفل ضربتك العالية.*
 
@@ -63,8 +87,14 @@ resolution; the lockout is an `AbilityController` rule keyed on an ability tag.
 **The Price:** after **8 seconds without landing a hit**, the hunger starts — a
 Ghasaq damage-over-time on you that only stops when a hit lands.
 
-**In the Core today:** the damage-over-time shape exists (`StatusKind.Bleeding`
-carrying a Ghasaq school); the heal-on-hit and the no-hit timer are new.
+**In the Core now:** any landed hit of the bearer's feeds (`NotifyHitLanded`,
+8% of the damage actually applied). Eight seconds without one starts the
+famine, a `StatusKind.Starving` damage-over-time carrying the Ghasaq school at
+*draft* 2% of maximum health per second. It gets its own status kind rather than
+borrowing Bleeding: a Price is not a wound, and merging the two would let an
+enemy's bleed end the famine or hide it on the HUD. The famine ends the moment a
+hit lands, through an explicit `StatusEffectSystem.Remove` of the instance the
+loadout owns - duration never decides when a Price stops.
 
 *في سطر: كل ضربة تطعمك، والجفاف يأكلك.*
 
@@ -76,8 +106,14 @@ a share of incoming damage; on break it bursts outward, *draft* 2.5 m.
 **The Price:** after the shatter you are **exposed for 2 s** — damage taken
 increased (the `Marked` shape) and the shield is gone.
 
-**In the Core today:** `StatusKind.Warded` (absorb) and `StatusKind.Marked`
-(taking more damage) both exist; the outward burst is an ability.
+**In the Core now:** the shield forms when the Sigil is taken up, holds *draft*
+35% of the bearer's maximum health, and takes *draft* half of each incoming blow
+until it runs out. Breaking it applies the exposure (the `Marked` shape, +25%
+damage taken for 2 s), queues the shatter request, and starts the *draft* 12 s
+reform - the verb must come back inside a fight. The shatter itself is finished
+by the encounter: a 2.5 m radial burst at *draft* 75% of AttackPower, through
+the hostiles' own armour. The shield guards against blows, not against damage
+that arrives from inside, such as the Hunger famine.
 
 *في سطر: حصانة تنكسر فتصير مكشوفًا.*
 
@@ -85,10 +121,10 @@ increased (the `Marked` shape) and the shield is gone.
 
 | Piece | Existing in Core | New in the slice |
 | --- | --- | --- |
-| Carrying and swapping | — | one equipped-Sigil slot; swap at the Hearth |
-| The verbs | `AbilityDefinition` (Melee / Cleave / Bolt / Burst / Dash / Self) | one ability definition per Sigil |
-| The Prices | `StatId` modifiers, `StatusKind`, ability lockout | a Price surface on the HUD plus the specific hooks above |
-| Tuning | — | draft numbers here → Remote Config (later phase) |
+| Carrying and swapping | — | one equipped-Sigil slot (`GameSession.TryEquipSigil`, refused mid-fight); saved and restored by id; swap at the Hearth |
+| The verbs | `AbilityDefinition` (Melee / Cleave / Bolt / Burst / Dash / Self) | each Sigil is a rule on the shared kit, not a new button: the blink is the dash, the execution is a strike, the shield is how damage arrives. Per-Sigil ability definitions remain for the HUD pass |
+| The Prices | `StatId` modifiers, `StatusKind`, ability lockout | implemented as the specific hooks above, each pinned by a test; the HUD surface (a Price line on screen at all times) is the remaining slice work |
+| Tuning | — | draft numbers in `SigilTuning` → Remote Config (later phase) |
 
 Every Price must remain readable in the HUD at all times (plan §3.2): the slice
 is not complete if a Price is only discoverable by reading this document.
