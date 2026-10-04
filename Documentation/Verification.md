@@ -68,6 +68,13 @@ New in code:
   steps, a second main scene boots on that file and applies it before the run
   is built, and the defaults restore.
 
+Both workflows ran on GitHub for the change, on `c22719e`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #27 | **success** — naming gate, purity, the 661 tests, layout, build, smoke (126 checks) |
+| `android.yml` | Android ARM64 #27 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
 What this pass does not cover: nothing here has been seen on a device. The
 vignette, the palette and the text steps are exercised as arithmetic and
 through the live menu in a headless run, which cannot observe a pixel; whether
