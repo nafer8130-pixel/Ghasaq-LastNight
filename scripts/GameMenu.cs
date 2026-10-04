@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Godot;
+using Ghasaq.Core.Combat;
 using Ghasaq.Core.Content;
 using Ghasaq.Core.Items;
 using Ghasaq.Core.Progression;
@@ -40,6 +41,7 @@ namespace Ghasaq.Game
             Main,
             Attributes,
             World,
+            Sigils,
             Saves
         }
 
@@ -154,6 +156,11 @@ namespace Ghasaq.Game
                     AddTravelRows();
                     break;
 
+                case MenuPage.Sigils:
+                    AddRow("<  BACK", () => GoTo(MenuPage.Main));
+                    AddSigilRows();
+                    break;
+
                 case MenuPage.Saves:
                     AddRow("<  BACK", () => GoTo(MenuPage.Main));
                     AddSaveRows();
@@ -195,7 +202,7 @@ namespace Ghasaq.Game
             AddRow(label, activate, new Color(0.92f, 0.92f, 0.95f));
         }
 
-        private void AddRow(string label, Action activate, Color color)
+        private void AddRow(string label, Action activate, Color color, float minHeight = 46f)
         {
             if (_pendingActions.Count >= RowPool)
             {
@@ -206,6 +213,7 @@ namespace Ghasaq.Game
             Button button = _rows[index].Button;
 
             button.Text = label;
+            button.CustomMinimumSize = new Vector2(0f, minHeight);
             button.Disabled = activate == null;
             button.AddThemeColorOverride("font_color", color);
             button.AddThemeColorOverride("font_disabled_color", new Color(0.6f, 0.6f, 0.64f));
@@ -246,6 +254,13 @@ namespace Ghasaq.Game
                 points > 0 ? "ATTRIBUTES   (" + points + " to spend)" : "ATTRIBUTES",
                 () => GoTo(MenuPage.Attributes),
                 points > 0 ? new Color(0.95f, 0.88f, 0.60f) : new Color(0.82f, 0.88f, 0.94f));
+
+            SigilDefinition carriedSigil = Root.Session.EquippedSigil;
+
+            AddRow(
+                carriedSigil == null ? "الوَسْم — SIGIL" : "الوَسْم — SIGIL   (" + carriedSigil.DisplayName + ")",
+                () => GoTo(MenuPage.Sigils),
+                new Color(0.94f, 0.82f, 0.55f));
 
             AddRow("THE WORLD", () => GoTo(MenuPage.World), new Color(0.82f, 0.88f, 0.94f));
             AddRow("SAVES", () => GoTo(MenuPage.Saves), new Color(0.82f, 0.88f, 0.94f));
@@ -460,6 +475,80 @@ namespace Ghasaq.Game
                     new Color(0.82f, 0.88f, 0.94f));
 
                 added++;
+            }
+        }
+
+        // ---------------------------------- sigils --------------------------------
+
+        /// <summary>
+        /// The Hearth's sigil stand: what is carried, what it costs, and the five
+        /// ways of fighting this slice ships.
+        ///
+        /// Swapping is a rule of the simulation, not of this screen
+        /// (<see cref="Ghasaq.Core.Simulation.GameSession.TryEquipSigil"/>): the
+        /// menu asks, and shows whatever refusal comes back. Each row carries its
+        /// Price, because a Sigil chosen without its cost is not a choice.
+        /// </summary>
+        private void AddSigilRows()
+        {
+            IReadOnlyList<SigilDefinition> sigils = Root.Session.Sigils;
+            SigilDefinition carried = Root.Session.EquippedSigil;
+
+            AddNote(carried == null
+                ? "لا وَسْم محمول. الوَسْم يغيّر فعلاً قتالياً واحداً، وله ثمن ظاهر في الـ HUD."
+                : "الحالي: " + carried.DisplayName + "  \u2014  " + carried.VerbLine);
+
+            if (carried != null)
+            {
+                AddNote("الثمن: " + carried.PriceLine);
+            }
+
+            AddHeader("اختر وَسْماً (في الموقد، وخارج القتال):");
+
+            for (int i = 0; i < sigils.Count; i++)
+            {
+                AddSigilRow(sigils[i], carried);
+            }
+
+            AddNote("الموقد في مخيّم الجمرة الأخيرة. لا يُبدّل الوَسْم وسط القتال.");
+        }
+
+        private void AddSigilRow(SigilDefinition sigil, SigilDefinition carried)
+        {
+            bool current = carried != null && string.Equals(carried.Id, sigil.Id, StringComparison.Ordinal);
+
+            string label = sigil.DisplayName + "  \u00b7  " + sigil.EnglishName + (current ? "   \u2713" : "") +
+                "\nالثمن: " + sigil.PriceLine;
+
+            SigilDefinition captured = sigil;
+
+            AddRow(label, () => EquipSigil(captured),
+                current ? new Color(0.95f, 0.88f, 0.60f) : new Color(0.86f, 0.9f, 0.84f),
+                minHeight: 80f);
+        }
+
+        private void EquipSigil(SigilDefinition sigil)
+        {
+            if (Root.Session.TryEquipSigil(sigil.Id, out SigilEquipFailure failure))
+            {
+                ShowStatus("حملت " + sigil.DisplayName + ". الثمن: " + sigil.PriceLine);
+            }
+            else
+            {
+                ShowStatus(DescribeSigilFailure(failure));
+            }
+
+            Rebuild();
+        }
+
+        private static string DescribeSigilFailure(SigilEquipFailure failure)
+        {
+            switch (failure)
+            {
+                case SigilEquipFailure.UnknownSigil: return "وَسْم غير معروف في هذه النسخة.";
+                case SigilEquipFailure.InCombat: return "لا يُبدّل الوَسْم وسط القتال — عد إلى الموقد.";
+                case SigilEquipFailure.NotAtHearth: return "الموقد في المخيّم (الجمرة الأخيرة) — لا هاهنا.";
+                default: return "تعذّر تبديل الوَسْم.";
             }
         }
 

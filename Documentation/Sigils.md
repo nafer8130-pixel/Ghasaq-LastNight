@@ -12,10 +12,22 @@ in `SigilTuning`, the runtime state in `SigilLoadout`, and the hooks in
 behaviour, not the tuning. `SigilTests` pins each verb and each Price, and
 content validation refuses a Sigil that has no Price line to show.
 
+**The Price surface landed the same day (2026-10-04).** The HUD draws the
+carried Sigil, its verb and its Price on every frame it is carried
+(`Hud.DrawSigilSurface`), with the live state of the Price below them where the
+loadout records one; the Silence lock is marked on the button it takes away, and
+tapping that button shows the Price line; and the swap is refused anywhere but
+the Hearth's camp, out of combat - that rule lives in
+`GameSession.TryEquipSigil` (`SigilEquipFailure.NotAtHearth`), so the menu's
+Sigil page only asks for it. The lines are Arabic, and Godot's built-in font has
+no Arabic glyphs at all (measured: `has_char('م') == false`), so the two Noto
+fonts the project draws with are vendored in `assets/fonts/` (OFL-1.1).
+
 ## The contract (plan §3.1–3.2)
 
 - The player carries **one** الوَسْم / Sigil per run, swapped at the الموقد /
-  Hearth, out of combat.
+  Hearth, out of combat. Enforced as: a camp region (`RegionKind.Camp`) with no
+  hostiles standing.
 - A Sigil **changes one combat action radically**. It is a combat style, not a
   character pull: no gacha, no pulls, no levels to buy.
 - Every Sigil has a **الثمن / Price**: a visible mechanical cost, **shown on the
@@ -77,6 +89,9 @@ resistance and crit; above it, it merely lands multiplied. The Price is a lock
 on the longest wind-up: `AbilityController` computes `LoudestAbilityIndex`,
 refuses it with `AbilityFailure.Locked`, and exposes `LockedAbilityIndex` so the
 HUD button can be marked. In the shipped kit the sealed ability is `sunder`.
+The button carries a red frame and a ×, and the Sigil surface below it names the
+locked ability (`مقفل الآن: Sunder`); tapping the button shows the Price line
+instead of doing nothing.
 
 *في سطر: تقتل من الخلف، ويُقفل ضربتك العالية.*
 
@@ -121,13 +136,15 @@ that arrives from inside, such as the Hunger famine.
 
 | Piece | Existing in Core | New in the slice |
 | --- | --- | --- |
-| Carrying and swapping | — | one equipped-Sigil slot (`GameSession.TryEquipSigil`, refused mid-fight); saved and restored by id; swap at the Hearth |
-| The verbs | `AbilityDefinition` (Melee / Cleave / Bolt / Burst / Dash / Self) | each Sigil is a rule on the shared kit, not a new button: the blink is the dash, the execution is a strike, the shield is how damage arrives. Per-Sigil ability definitions remain for the HUD pass |
-| The Prices | `StatId` modifiers, `StatusKind`, ability lockout | implemented as the specific hooks above, each pinned by a test; the HUD surface (a Price line on screen at all times) is the remaining slice work |
+| Carrying and swapping | — | one equipped-Sigil slot (`GameSession.TryEquipSigil`, refused outside the Hearth's camp and mid-fight); saved and restored by id; swap offered by the menu's Sigil page |
+| The verbs | `AbilityDefinition` (Melee / Cleave / Bolt / Burst / Dash / Self) | each Sigil is a rule on the shared kit, not a new button: the blink is the dash, the execution is a strike, the shield is how damage arrives. Per-Sigil ability definitions were not needed for the slice |
+| The Prices | `StatId` modifiers, `StatusKind`, ability lockout | implemented as the specific hooks above, each pinned by a test; the HUD surface draws the verb and the Price at all times (`Hud.DrawSigilSurface`), with the live state under them |
 | Tuning | — | draft numbers in `SigilTuning` → Remote Config (later phase) |
 
 Every Price must remain readable in the HUD at all times (plan §3.2): the slice
-is not complete if a Price is only discoverable by reading this document.
+is not complete if a Price is only discoverable by reading this document. As of
+the Price surface, every carried Price is on screen while it is carried; what
+remains is the feel gate below - the numbers, and whether a player reads them.
 
 ## The feel gate (sign-off)
 

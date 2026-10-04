@@ -71,6 +71,13 @@ namespace Ghasaq.Game
         [Export] public int Seed = 20250925;
         [Export] public float ArenaHalfExtent = 38f;
         [Export] public string StartingRegion = GameContent.RegionWilds;
+
+        /// <summary>
+        /// The Sigil a new run takes up, before it leaves the camp. The plan's
+        /// basic Sigil: one is always carried (plan section 3.1). Empty means a
+        /// run starts with none; a loaded save restores the Sigil it recorded.
+        /// </summary>
+        [Export] public string StartingSigil = GameContent.SigilLantern;
         [Export] public string SaveSlot = "slot-1";
         [Export] public bool LoadSaveOnStart = false;
         [Export] public bool AutoSaveEnabled = true;
@@ -134,9 +141,13 @@ namespace Ghasaq.Game
 
             Build();
 
+            SigilDefinition carried = Session.EquippedSigil;
+            string carriedId = carried != null ? carried.Id : "none";
+
             GD.Print($"Ghasaq ready: region '{Session.RegionId}', " +
                 $"{Session.Encounter.HostilesRemaining} hostiles, " +
-                $"{Session.Quests.All.Count} quests, level {Session.Progression.Level}");
+                $"{Session.Quests.All.Count} quests, level {Session.Progression.Level}, " +
+                $"sigil '{carriedId}'");
         }
 
         /// <summary>Builds a complete playable session. Safe to call again to restart.</summary>
@@ -172,6 +183,15 @@ namespace Ghasaq.Game
                 _occlusion);
 
             GameContent.Populate(Session);
+
+            // The run starts at the Hearth's camp, so the basic Sigil is taken up
+            // here, before the first hostile exists. It is what puts a Price on
+            // the HUD from the first frame (plan section 3.2).
+            if (!string.IsNullOrEmpty(StartingSigil)
+                && !Session.TryEquipSigil(StartingSigil, out SigilEquipFailure sigilFailure))
+            {
+                GD.PushWarning("The starting Sigil '" + StartingSigil + "' was not taken up: " + sigilFailure + ".");
+            }
 
             SaveManager = new SaveSlotManager(
                 new GodotSaveStorage(),

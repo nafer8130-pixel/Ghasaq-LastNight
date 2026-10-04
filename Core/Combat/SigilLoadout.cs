@@ -31,6 +31,7 @@ namespace Ghasaq.Core.Combat
 
         // Glass
         private float _shieldRemaining;
+        private float _shieldCapacity;
         private float _reformRemaining;
         private bool _hasShatter;
         private float _shatterDamage;
@@ -85,6 +86,17 @@ namespace Ghasaq.Core.Combat
             get { return _shieldRemaining; }
         }
 
+        /// <summary>
+        /// The shield's full strength, snapshotted when it formed. The HUD shows
+        /// "remaining of this", so it must be the value the shield actually
+        /// formed with rather than one recomputed from a maximum health that may
+        /// have grown since.
+        /// </summary>
+        public float ShieldCapacity
+        {
+            get { return _shieldCapacity; }
+        }
+
         public bool ShieldActive
         {
             get { return Kind == SigilId.Glass && _shieldRemaining > 0f; }
@@ -132,7 +144,8 @@ namespace Ghasaq.Core.Combat
 
             if (definition.Kind == SigilId.Glass)
             {
-                _shieldRemaining = ShieldCapacity();
+                _shieldCapacity = ComputeShieldCapacity();
+                _shieldRemaining = _shieldCapacity;
                 _reformRemaining = 0f;
             }
         }
@@ -144,6 +157,7 @@ namespace Ghasaq.Core.Combat
 
             _definition = null;
             _shieldRemaining = 0f;
+            _shieldCapacity = 0f;
             _reformRemaining = 0f;
             _secondsSinceLandedHit = 0f;
             _hasShatter = false;
@@ -199,7 +213,8 @@ namespace Ghasaq.Core.Combat
             if (_reformRemaining <= 0f)
             {
                 _reformRemaining = 0f;
-                _shieldRemaining = ShieldCapacity();
+                _shieldCapacity = ComputeShieldCapacity();
+                _shieldRemaining = _shieldCapacity;
             }
         }
 
@@ -382,7 +397,7 @@ namespace Ghasaq.Core.Combat
 
         // -------------------------------- internals --------------------------------
 
-        private float ShieldCapacity()
+        private float ComputeShieldCapacity()
         {
             return _owner.Vitals.MaxHealth * SigilTuning.GlassShieldHealthFraction;
         }

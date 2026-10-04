@@ -514,6 +514,7 @@ namespace Ghasaq.Core.Tests.Combat
 
             // 35% of 100 health: the shield holds 35.
             Assert.Equal(35f, bearer.Sigil.ShieldRemaining, 3);
+            Assert.Equal(35f, bearer.Sigil.ShieldCapacity, 3);
 
             bearer.ReceiveDamage(new DamageResult(40f, 40f, 40f, false, 0f), null);
 
@@ -626,6 +627,24 @@ namespace Ghasaq.Core.Tests.Combat
             Assert.False(session.TryEquipSigil(GameContent.SigilAsh, out failure));
             Assert.Equal(SigilEquipFailure.InCombat, failure);
             Assert.Equal(SigilId.Lantern, session.Player.Sigil.Kind);
+        }
+
+        [Fact]
+        public void TryEquipSigil_RefusesOutsideACamp()
+        {
+            GameSession session = NewSession();
+
+            // The Hearth stands in the camp, so the wilds cannot take a Sigil up.
+            session.EnterRegion(GameContent.RegionWilds);
+            Assert.False(session.TryEquipSigil(GameContent.SigilAsh, out SigilEquipFailure failure));
+            Assert.Equal(SigilEquipFailure.NotAtHearth, failure);
+            Assert.Null(session.Player.Sigil);
+
+            // Back at the Hearth's camp, out of combat, the swap goes through.
+            session.EnterRegion(GameContent.RegionCamp);
+            Assert.True(session.TryEquipSigil(GameContent.SigilAsh, out failure));
+            Assert.Equal(SigilEquipFailure.None, failure);
+            Assert.Equal(SigilId.Ash, session.Player.Sigil.Kind);
         }
 
         [Fact]

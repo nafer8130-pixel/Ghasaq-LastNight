@@ -4,6 +4,80 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## The Price surface: the Sigil on the HUD (2026-10-04)
+
+The remaining slice work of [Sigils.md](Sigils.md) is done: every carried ثمن /
+Price is drawn on the HUD at all times (plan §3.2), the Silence lock is marked on
+the button it takes away, the swap is refused away from the Hearth's camp, and
+the Arabic lines have a font to draw with.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **601 passed, 0 failed** (299 ms; 600 before this change) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** — now also checks the UI font files and the theme setting |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 24/24 checks** (16 before; 8 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 300` | **Pass** — `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern'` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 103,985,224 bytes (99 MB) |
+
+New in code:
+
+- `scripts/Hud.cs` — the Sigil surface, drawn every frame while a Sigil is
+  carried: its name, its verb and its Price (in a distinct colour, as the
+  contract asks), plus the live state where the loadout records one - the
+  Glass shield's remaining-of-capacity, its reform clock and the exposure, the
+  Hunger famine clock and the famine itself, and the name of the ability
+  Silence has locked. The locked button itself carries a red frame and a `×`,
+  and tapping it shows the Price line instead of doing nothing.
+- `scripts/GameMenu.cs` — the Hearth's sigil stand: what is carried and what it
+  costs, then the five to choose from, each row carrying its own Price. The
+  menu asks; the simulation decides.
+- `Core/Simulation/GameSession.cs` — the swap is now refused outside a camp
+  (`SigilEquipFailure.NotAtHearth`) as well as mid-fight, and the session lists
+  the Sigils it was handed (`GameSession.Sigils`). The rule is asked of
+  `RegionKind.Camp`, not of a region name.
+- `Core/Combat/SigilLoadout.cs` — `ShieldCapacity`, snapshotted when the shield
+  forms, so the HUD's "remaining of" is the strength the shield actually has.
+- `scripts/GameRoot.cs` — every new run takes up its basic Sigil in the camp
+  (`StartingSigil`, default المشكاة / `lantern`) before the first hostile exists;
+  the ready line now names it.
+- `assets/fonts/` — Noto Sans (Latin) and Noto Sans Arabic, composed by a
+  `FontVariation` and selected project-wide by `gui/theme/custom_font`, with
+  their OFL licence and provenance. Measured before vendoring: Godot's built-in
+  font has **no Arabic glyphs** (`has_char('م') == false`), and the joined form
+  of `المشكاة` measures 75 px where the same letters unjoined measure 137 px -
+  so the shaping itself is exercised, not just the codepoints.
+- `Tests/Godot/GodotSmoke.cs` — 8 new checks: the font covers Arabic and Latin,
+  all five Sigils have their lines, every line fits the HUD's card at its drawing
+  size, the swap is refused away from the camp, it is taken up in the camp, the
+  carried Price line reaches the HUD, the Silence Sigil can be taken up, and
+  Silence marks the loudest ability on its HUD button.
+
+`SigilTests` gained the Hearth rule: refused in the wilds, allowed in the camp.
+
+### The APK really ships the font
+
+The fresh APK was inspected with the SDK's tools; the font is not merely in the
+tree, it is in the package:
+
+```
+assets/.godot/imported/NotoSans-Regular.ttf-*.fontdata        296,548 B
+assets/.godot/imported/NotoSansArabic-Regular.ttf-*.fontdata  127,702 B
+assets/.godot/exported/.../ghasaq-ui-font.res                     672 B
+assets/project.binary names res://assets/fonts/ghasaq-ui-font.tres
+Signer #1 certificate DN: CN=Godot, OU=Godot Engine, O=Stichting Godot, C=NL
+sha256  6bae37540be825183b775d85a1dee2b5e2a415b692c72b8651b245279f4702f8
+```
+
+**Not measured:** the card has never been *rendered*. This environment has no
+display and headless Godot has no rasteriser, so the drawing path is exercised
+only by compilation, by the smoke test's font and fit measurements, and by the
+APK shipping the font. Whether the surface reads well at 1920x1080, whether the
+Arabic shaping *looks* right, and the whole feel gate of
+[Sigils.md](Sigils.md) still need a screen and a player.
+
 ## The five الوَسْم / Sigils in the Core (2026-10-04)
 
 [Documentation/Sigils.md](Sigils.md) is no longer a design in prose only: all
@@ -53,10 +127,9 @@ Both workflows ran on GitHub for this change, on the Sigil commit (`cae645c`):
 
 **Not measured:** the feel gate of [Sigils.md](Sigils.md) — whether a player can
 say what their Sigil does and what it costs within one fight — is a designer and
-playtest question. The HUD does not draw the Price line yet (the Core exposes it
-and the intent to show it lives in the contract), and none of these five has been
-played on a device. The numbers are still draft: what is verified is the
-behaviour, not that the tuning is fun.
+playtest question. The HUD now draws the Price line (see the section above), but
+none of these five has been played on a device. The numbers are still draft:
+what is verified is the behaviour, not that the tuning is fun.
 
 ## After the naming change (2026-10-04)
 

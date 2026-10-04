@@ -29,6 +29,13 @@ window/stretch/aspect="expand"
 
 project/assembly_name="Ghasaq"
 
+[gui]
+
+; The game's authored text is Arabic-first, and Godot's built-in font has no
+; Arabic glyphs. ghasaq-ui-font.tres chains Noto Sans with Noto Sans Arabic;
+; see assets/fonts/README.md for provenance and license.
+theme/custom_font="res://assets/fonts/ghasaq-ui-font.tres"
+
 [input]
 
 move_forward={

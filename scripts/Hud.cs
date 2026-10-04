@@ -55,6 +55,22 @@ namespace Ghasaq.Game
         private const float DamageNumberRise = 46f;
         private const int MousePointerId = -999;
 
+        // ---- the Sigil surface (the Price is visible at all times) ----
+
+        /// <summary>The card's width in canvas units. Public so the smoke test can hold every authored line to it.</summary>
+        public const float SigilCardWidth = 660f;
+
+        /// <summary>The body size the verb and Price lines are drawn at.</summary>
+        public const int SigilLineSize = 17;
+
+        private const float SigilTitleSize = 19f;
+        private const float SigilTitleAscent = 27f;
+        private const float SigilLineAdvance = 38f;
+        private static readonly Color SigilVerbColor = new Color(0.86f, 0.86f, 0.9f, 0.92f);
+        private static readonly Color SigilPriceColor = new Color(0.95f, 0.73f, 0.42f, 0.96f);
+        private static readonly Color SigilLiveColor = new Color(0.95f, 0.52f, 0.44f, 0.96f);
+        private static readonly Color SigilLockedColor = new Color(0.9f, 0.32f, 0.28f, 0.95f);
+
         private Font _font;
         private GameSession _session;
         private PlayerInputReader _input;
@@ -81,7 +97,17 @@ namespace Ghasaq.Game
 
         public override void _Ready()
         {
+            // The project's UI font chains Noto Sans with Noto Sans Arabic. If a
+            // build ever loses it, the Arabic Price lines would silently draw as
+            // nothing, so that is said out loud once rather than discovered on a
+            // device.
             _font = ThemeDB.FallbackFont;
+
+            if (_font != null && !_font.HasChar(0x0645))
+            {
+                GD.PushWarning("The UI font has no Arabic glyphs; the Sigil lines will not draw.");
+            }
+
             MouseFilter = MouseFilterEnum.Ignore;
             SetProcess(true);
         }
@@ -205,6 +231,22 @@ namespace Ghasaq.Game
                 }
 
                 _touches[id] = new TouchSlot { Role = TouchRole.Button };
+
+                // A locked button explains itself instead of doing nothing: the
+                // Price is the point, so tapping it shows the Price line. The
+                // core would refuse the activation anyway; this is the reason.
+                if (i == LockedAbilityIndex())
+                {
+                    SigilDefinition sigil = _session.EquippedSigil;
+
+                    if (sigil != null)
+                    {
+                        ShowMessage(sigil.DisplayName + " — " + sigil.PriceLine);
+                    }
+
+                    return;
+                }
+
                 _input.RequestAbility(i);
                 return;
             }
@@ -319,6 +361,7 @@ namespace Ghasaq.Game
             DrawMoveStick();
             DrawFloatingDamage();
             DrawStatusLine();
+            DrawSigilSurface();
             DrawMenuButton();
             DrawMessage();
         }
@@ -389,15 +432,23 @@ namespace Ghasaq.Game
                 return;
             }
 
+            int lockedIndex = participant.Abilities.LockedAbilityIndex;
+
             for (int i = 0; i < AbilityButtonCount; i++)
             {
                 Rect2 rect = AbilityRect(i);
                 float cooldown = Mathf.Clamp(participant.Abilities.CooldownFraction(i), 0f, 1f);
                 bool ready = participant.Abilities.IsReady(i) && !participant.Abilities.IsBusy;
+                bool locked = i == lockedIndex;
 
                 Color back = ready
                     ? new Color(0.22f, 0.20f, 0.26f, 0.8f)
                     : new Color(0.10f, 0.09f, 0.12f, 0.8f);
+
+                if (locked)
+                {
+                    back = new Color(0.18f, 0.09f, 0.10f, 0.85f);
+                }
 
                 DrawRect(rect, back);
 
@@ -413,6 +464,18 @@ namespace Ghasaq.Game
                     : (i + 1).ToString();
 
                 Color textColor = ready ? Colors.White : new Color(0.6f, 0.6f, 0.6f);
+
+                if (locked)
+                {
+                    // The Silence Price is shown on the button it takes away:
+                    // a red frame, the × mark, and the reason in the Sigil
+                    // surface below.
+                    DrawRect(rect, SigilLockedColor, false, 3f);
+                    DrawString(_font, new Vector2(rect.Position.X + rect.Size.X - 24f, rect.Position.Y + 24f),
+                        "\u00d7", HorizontalAlignment.Left, -1, 22, SigilLockedColor);
+                    textColor = new Color(0.72f, 0.5f, 0.48f);
+                }
+
                 DrawString(_font, new Vector2(rect.Position.X + 8f, rect.Position.Y + rect.Size.Y * 0.5f),
                     label, HorizontalAlignment.Left, rect.Size.X - 12f, 16, textColor);
             }
@@ -532,6 +595,140 @@ namespace Ghasaq.Game
             }
 
             return _session.EncounterCleared ? "The field is quiet." : "";
+        }
+
+        // ------------------------------ the sigil surface ------------------------
+
+        /// <summary>
+        /// The carried Sigil, its verb and its Price, drawn every frame while one
+        /// is carried.
+        ///
+        /// The contract is explicit: every Price is shown on the HUD at all times
+        /// (plan section 3.2, Documentation/Sigils.md). This is that surface. The
+        /// static lines come straight from the Sigil's definition, so what is on
+        /// screen is what content validation signed off; below them, where the
+        /// loadout can say so, the Price is shown as it is actually being paid.
+        /// </summary>
+        private void DrawSigilSurface()
+        {
+            float x = Margin;
+            float y = Margin + (BarHeight + 6f) * 2f + 72f;
+
+            SigilDefinition sigil = _session?.EquippedSigil;
+            Combatant player = _session?.Player;
+
+            if (sigil == null || player == null)
+            {
+                DrawString(_font, new Vector2(x, y + SigilTitleAscent), "بلا وَسْم — لا فعل جديد ولا ثمن.",
+                    HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, new Color(0.62f, 0.6f, 0.66f, 0.85f));
+                return;
+            }
+
+            string live = LivePriceLine(player, sigil);
+            bool hasLive = !string.IsNullOrEmpty(live);
+
+            float titleBaseline = y + SigilTitleAscent;
+            float verbBaseline = titleBaseline + SigilLineAdvance + 4f;
+            float priceBaseline = verbBaseline + SigilLineAdvance;
+            float liveBaseline = priceBaseline + SigilLineAdvance;
+            float bottom = hasLive ? liveBaseline : priceBaseline;
+
+            DrawRect(new Rect2(x - 12f, y - 12f, SigilCardWidth + 24f, (bottom - y) + 24f),
+                new Color(0.05f, 0.05f, 0.07f, 0.55f));
+
+            DrawString(_font, new Vector2(x, titleBaseline), sigil.DisplayName + "  \u00b7  " + sigil.EnglishName,
+                HorizontalAlignment.Left, SigilCardWidth, (int)SigilTitleSize, new Color(0.93f, 0.88f, 0.72f, 0.96f));
+
+            DrawString(_font, new Vector2(x, verbBaseline), "الفعل: " + sigil.VerbLine,
+                HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, SigilVerbColor);
+
+            DrawString(_font, new Vector2(x, priceBaseline), "الثمن: " + sigil.PriceLine,
+                HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, SigilPriceColor);
+
+            if (hasLive)
+            {
+                DrawString(_font, new Vector2(x, liveBaseline), live,
+                    HorizontalAlignment.Left, SigilCardWidth, (int)SigilLineSize, SigilLiveColor);
+            }
+        }
+
+        /// <summary>
+        /// The Price as it is being paid at this moment, for the Sigils whose
+        /// state the loadout records. Empty when there is nothing live to add:
+        /// the Lantern's and Ash's Prices are moments, not states that linger.
+        /// </summary>
+        private string LivePriceLine(Combatant player, SigilDefinition sigil)
+        {
+            SigilLoadout loadout = player.Sigil;
+
+            if (loadout == null)
+            {
+                return "";
+            }
+
+            switch (sigil.Kind)
+            {
+                case SigilId.Silence:
+                {
+                    int locked = LockedAbilityIndex();
+                    if (locked < 0)
+                    {
+                        return "";
+                    }
+
+                    Participant participant = _session.Encounter.Find(player.Id);
+                    AbilityDefinition ability = participant?.Abilities[locked];
+                    string name = ability != null && !string.IsNullOrEmpty(ability.DisplayName)
+                        ? ability.DisplayName
+                        : (locked + 1).ToString();
+
+                    return "مقفل الآن: " + name;
+                }
+
+                case SigilId.Hunger:
+                {
+                    if (loadout.IsFamineActive)
+                    {
+                        return "جوع الغَسَق نشط — سدّد ضربة ليوقف.";
+                    }
+
+                    float toFamine = SigilTuning.HungerFamineSeconds - loadout.SecondsSinceLandedHit;
+                    return toFamine > 0f ? "الجفاف بعد " + toFamine.ToString("0.0") + " ث" : "";
+                }
+
+                case SigilId.Glass:
+                {
+                    if (loadout.ShieldActive)
+                    {
+                        return "الدرع: " + Mathf.RoundToInt(loadout.ShieldRemaining) + " / " +
+                            Mathf.RoundToInt(loadout.ShieldCapacity);
+                    }
+
+                    string reform = "الدرع يعود بعد " + loadout.ShieldReformRemaining.ToString("0.0") + " ث";
+
+                    if (player.Statuses.TryGet(StatusKind.Marked, out StatusEffect exposed))
+                    {
+                        return "مكشوف " + exposed.Remaining.ToString("0.0") + " ث — " + reform;
+                    }
+
+                    return loadout.ShieldReformRemaining > 0f ? reform : "";
+                }
+
+                default:
+                    return "";
+            }
+        }
+
+        /// <summary>The player's locked ability index, or -1 when nothing is locked.</summary>
+        private int LockedAbilityIndex()
+        {
+            if (_session?.Player == null)
+            {
+                return -1;
+            }
+
+            Participant participant = _session.Encounter.Find(_session.Player.Id);
+            return participant == null ? -1 : participant.Abilities.LockedAbilityIndex;
         }
 
         private void DrawMessage()

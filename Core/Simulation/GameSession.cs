@@ -31,6 +31,7 @@ namespace Ghasaq.Core.Simulation
     {
         private readonly Dictionary<string, LootTable> _lootTables;
         private readonly Dictionary<string, SigilDefinition> _sigils;
+        private readonly List<SigilDefinition> _sigilOrder;
         private readonly List<ItemStack> _lootBuffer;
 
         /// <summary>
@@ -62,6 +63,7 @@ namespace Ghasaq.Core.Simulation
 
             _lootTables = new Dictionary<string, LootTable>(StringComparer.Ordinal);
             _sigils = new Dictionary<string, SigilDefinition>(StringComparer.Ordinal);
+            _sigilOrder = new List<SigilDefinition>(8);
             _lootBuffer = new List<ItemStack>(8);
 
             Encounter = new EncounterSimulation(rng, bounds, occlusion);
@@ -188,6 +190,13 @@ namespace Ghasaq.Core.Simulation
                 return;
             }
 
+            // Re-registering replaces the definition in place and leaves the
+            // order alone, so a Hearth listing stays stable across a rebuild.
+            if (!_sigils.ContainsKey(definition.Id))
+            {
+                _sigilOrder.Add(definition);
+            }
+
             _sigils[definition.Id] = definition;
         }
 
@@ -195,6 +204,16 @@ namespace Ghasaq.Core.Simulation
         public SigilDefinition EquippedSigil
         {
             get { return Player.Sigil == null ? null : Player.Sigil.Definition; }
+        }
+
+        /// <summary>
+        /// Every Sigil this run knows about, in the order it was registered.
+        /// The Hearth lists these; the order is what makes that list stable
+        /// between openings.
+        /// </summary>
+        public IReadOnlyList<SigilDefinition> Sigils
+        {
+            get { return _sigilOrder; }
         }
 
         /// <summary>
@@ -215,6 +234,16 @@ namespace Ghasaq.Core.Simulation
             if (Encounter.HostilesRemaining > 0)
             {
                 failure = SigilEquipFailure.InCombat;
+                return false;
+            }
+
+            // The Hearth stands in a camp. The rule is asked of the region's
+            // kind rather than of a region id, so the simulation layer keeps
+            // knowing how the world behaves, not what this game's map is called.
+            RegionDefinition here = World.Get(RegionId);
+            if (here == null || here.Kind != RegionKind.Camp)
+            {
+                failure = SigilEquipFailure.NotAtHearth;
                 return false;
             }
 

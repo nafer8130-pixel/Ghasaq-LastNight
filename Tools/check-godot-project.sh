@@ -44,6 +44,10 @@ else
     if ! grep -q 'project/assembly_name="Ghasaq"' "$ROOT/project.godot"; then
         fail "project.godot does not name the Ghasaq C# assembly"
     fi
+
+    if ! grep -q 'theme/custom_font="res://assets/fonts/ghasaq-ui-font.tres"' "$ROOT/project.godot"; then
+        fail "project.godot does not set the UI font (the Sigil lines are Arabic)"
+    fi
 fi
 
 # -----------------------------------------------------------------------------
@@ -83,6 +87,18 @@ done
 for scene in Main.tscn Arena.tscn Player.tscn Enemy.tscn Hud.tscn GameMenu.tscn; do
     if [ ! -f "$ROOT/scenes/$scene" ]; then
         fail "missing scene: scenes/$scene"
+    fi
+done
+
+# -----------------------------------------------------------------------------
+# 3b. The UI font. Godot's built-in font has no Arabic glyphs, and the Sigil
+#     verb and Price lines are Arabic-first (Documentation/Sigils.md). Without
+#     these files the HUD would draw nothing where a Price must be.
+# -----------------------------------------------------------------------------
+for asset in assets/fonts/NotoSans-Regular.ttf assets/fonts/NotoSansArabic-Regular.ttf \
+    assets/fonts/ghasaq-ui-font.tres assets/fonts/OFL.txt; do
+    if [ ! -f "$ROOT/$asset" ]; then
+        fail "missing UI font asset: $asset"
     fi
 done
 

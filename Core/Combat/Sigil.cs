@@ -36,7 +36,14 @@ namespace Ghasaq.Core.Combat
         UnknownSigil = 1,
 
         /// <summary>A Sigil is chosen at the Hearth, never mid-fight (plan section 3.1).</summary>
-        InCombat = 2
+        InCombat = 2,
+
+        /// <summary>
+        /// The Hearth stands in a camp (plan section 3.7), and a Sigil is taken
+        /// up there. Standing in a camp is the rule; the Hearth station itself is
+        /// still a scene to build.
+        /// </summary>
+        NotAtHearth = 3
     }
 
     /// <summary>

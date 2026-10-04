@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Ghasaq.Core.Combat;
+using Ghasaq.Game;
 using Ghasaq.Core.Content;
 using Ghasaq.Core.Numerics;
 using Ghasaq.Core.Progression;
@@ -15,7 +17,9 @@ namespace Ghasaq.Tests
     ///
     /// It exercises the engine-free core through the engine: the deterministic
     /// RNG must keep its exact parity, a session must boot, a fight must actually
-    /// resolve, and a save must round-trip. Run with:
+    /// resolve, a save must round-trip, and the Sigil Price surface must be
+    /// drawable - a font with the Arabic glyphs and five authored Price lines.
+    /// Run with:
     ///
     ///     godot --headless --path . res://Tests/Godot/GodotSmoke.tscn
     ///
@@ -52,6 +56,7 @@ namespace Ghasaq.Tests
             CheckRngParity();
             CheckSessionBootsAndFights();
             CheckSaveRoundTrip();
+            CheckSigilSurface();
 
             if (_failures == 0)
             {
@@ -195,6 +200,80 @@ namespace Ghasaq.Tests
             Check(restored.Progression.TotalExperience == session.Progression.TotalExperience, "experience survives a save round-trip");
             Check(restored.Inventory.Count(GameContent.ItemAsh) == 7, "inventory survives a save round-trip");
             Check(restored.Player.Position.X == session.Player.Position.X, "position survives a save round-trip");
+        }
+
+        // ---------------------------------------------------------- the price ---
+
+        /// <summary>
+        /// The Price surface (plan section 3.2): every Price must be readable on
+        /// the HUD at all times. Two things have to hold for that, and neither is
+        /// visible to the engine-free tests: the UI font must actually carry the
+        /// Arabic glyphs - Godot's built-in font has none - and the five Sigils
+        /// must have their lines authored. The swap rule is checked here too,
+        /// because it is what puts the lines on screen in the first place.
+        /// </summary>
+        private void CheckSigilSurface()
+        {
+            Font font = ThemeDB.FallbackFont;
+            Check(font != null && font.HasChar(0x0645) && font.HasChar(0x0041),
+                "the UI font covers Arabic and Latin (the Price lines can draw)");
+
+            List<SigilDefinition> sigils = GameContent.BuildSigils();
+            bool linesPresent = sigils.Count == 5;
+
+            for (int i = 0; i < sigils.Count; i++)
+            {
+                if (string.IsNullOrEmpty(sigils[i].VerbLine) || string.IsNullOrEmpty(sigils[i].PriceLine))
+                {
+                    linesPresent = false;
+                }
+            }
+
+            Check(linesPresent, "all five Sigils carry a verb line and a Price line for the HUD");
+
+            // The card does not wrap: a line that does not fit runs off it. Measured
+            // with the font and size the HUD actually draws with.
+            bool linesFit = true;
+
+            for (int i = 0; i < sigils.Count; i++)
+            {
+                if (font.GetStringSize("الفعل: " + sigils[i].VerbLine, HorizontalAlignment.Left, -1, Hud.SigilLineSize).X > Hud.SigilCardWidth ||
+                    font.GetStringSize("الثمن: " + sigils[i].PriceLine, HorizontalAlignment.Left, -1, Hud.SigilLineSize).X > Hud.SigilCardWidth)
+                {
+                    linesFit = false;
+                }
+            }
+
+            Check(linesFit, "every Sigil line fits the HUD's card width at its drawing size");
+
+            GameSession session = BuildSession();
+
+            // The session boots in the Grey Wilds, away from the Hearth.
+            Check(!session.TryEquipSigil(GameContent.SigilLantern, out SigilEquipFailure away)
+                && away == SigilEquipFailure.NotAtHearth,
+                "the swap is refused away from the Hearth's camp");
+
+            session.EnterRegion(GameContent.RegionCamp);
+
+            Check(session.TryEquipSigil(GameContent.SigilLantern, out SigilEquipFailure atHearth)
+                && atHearth == SigilEquipFailure.None,
+                "a run takes up its starting Sigil in the camp");
+
+            SigilDefinition carried = session.EquippedSigil;
+            Check(carried != null && !string.IsNullOrEmpty(carried.PriceLine),
+                "the carried Sigil exposes its Price line to the HUD");
+
+            session.Encounter.AddDriven(
+                session.Player,
+                GameContent.BuildPlayerAbilities(),
+                new AggressiveDriver(),
+                isPlayer: true);
+
+            Check(session.TryEquipSigil(GameContent.SigilSilence, out _), "the Silence Sigil can be taken up");
+
+            Participant participant = session.Encounter.Find(session.Player.Id);
+            Check(participant != null && participant.Abilities.LockedAbilityIndex >= 0,
+                "Silence marks the loudest ability on its HUD button");
         }
     }
 }
