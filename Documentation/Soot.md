@@ -21,9 +21,10 @@ commitment rule and the refusal rule.
   while the Ghasaq is left alone.
 - Past a threshold, العَتْمة / Dimming begins: **stronger and frailer at once**
   - more damage dealt, more damage taken.
-- **No corruption bar.** Nothing in the Soot ever takes the character away from
-  the player: no self-damage, no death, no lost control. The player controls the
-  risk; the meter only re-prices the fight.
+- **Nothing here loses the character.** The Soot opens no door to self-damage,
+  death or lost control: the player controls the risk, and the meter only
+  re-prices the fight. (The plan rejects a descent bar outright; this is not
+  one.)
 - The plan's "light visual distortion" is deliberately **not built yet**: it is
   gated on accessibility settings ("can be turned off in accessibility
   settings", plan §3.6/§6), and this build has no settings screen. The bar and

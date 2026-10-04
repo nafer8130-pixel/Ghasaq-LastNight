@@ -12,9 +12,10 @@ namespace Ghasaq.Core.Combat
     /// fades, and what the two edges of the Dimming are worth. Changing a
     /// number means changing it here, where the tests notice.
     ///
-    /// Deliberately absent: any self-damage, any death, any corruption bar. The
-    /// plan is explicit that the Dimming shifts risk - stronger and frailer at
-    /// once - and never takes the character away from the player (section 3.6).
+    /// Deliberately absent: any self-damage, any death, any bar that could lose
+    /// the character. The plan is explicit that the Dimming shifts risk -
+    /// stronger and frailer at once - and never takes the character away from
+    /// the player (section 3.6).
     /// </summary>
     public static class SootTuning
     {
