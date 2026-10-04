@@ -32,6 +32,7 @@ namespace Ghasaq.Core.Simulation
         private readonly Dictionary<string, LootTable> _lootTables;
         private readonly Dictionary<string, SigilDefinition> _sigils;
         private readonly List<SigilDefinition> _sigilOrder;
+        private readonly List<PrefixDefinition> _prefixOrder;
         private readonly List<ItemStack> _lootBuffer;
 
         /// <summary>
@@ -66,6 +67,7 @@ namespace Ghasaq.Core.Simulation
             _lootTables = new Dictionary<string, LootTable>(StringComparer.Ordinal);
             _sigils = new Dictionary<string, SigilDefinition>(StringComparer.Ordinal);
             _sigilOrder = new List<SigilDefinition>(8);
+            _prefixOrder = new List<PrefixDefinition>(8);
             _lootBuffer = new List<ItemStack>(8);
 
             Encounter = new EncounterSimulation(rng, bounds, occlusion);
@@ -213,6 +215,32 @@ namespace Ghasaq.Core.Simulation
             }
 
             _sigils[definition.Id] = definition;
+        }
+
+        /// <summary>
+        /// Makes a rare prefix available to this run's loot rolls (plan section
+        /// 3.3). Like Sigils and loot tables, the session is handed content by
+        /// whoever built it.
+        /// </summary>
+        public void RegisterPrefix(PrefixDefinition definition)
+        {
+            if (definition == null || string.IsNullOrEmpty(definition.Id))
+            {
+                return;
+            }
+
+            // Re-registering replaces in place and leaves the order alone, so
+            // the weighted stream stays stable across a content rebuild.
+            for (int i = 0; i < _prefixOrder.Count; i++)
+            {
+                if (string.Equals(_prefixOrder[i].Id, definition.Id, StringComparison.Ordinal))
+                {
+                    _prefixOrder[i] = definition;
+                    return;
+                }
+            }
+
+            _prefixOrder.Add(definition);
         }
 
         /// <summary>The الوَسْم / Sigil this run carries, or null while it carries none.</summary>
@@ -495,10 +523,102 @@ namespace Ghasaq.Core.Simulation
             int granted = 0;
             for (int i = 0; i < _lootBuffer.Count; i++)
             {
-                granted += GrantItem(_lootBuffer[i].ItemId, _lootBuffer[i].Quantity);
+                // A rolled prefix swaps the stack for its variant before the bag
+                // sees it, so everything downstream - bag, loadout, forge, save -
+                // meets one ordinary id.
+                string itemId = RollPrefix(_lootBuffer[i].ItemId);
+                granted += GrantItem(itemId, _lootBuffer[i].Quantity);
             }
 
             return granted;
+        }
+
+        /// <summary>
+        /// Rolls the rare prefix onto one looted stack (plan section 3.3).
+        ///
+        /// Drops only: quest rewards and starting kits keep their plain ids,
+        /// so a story handout cannot surprise anyone with an affix. Only
+        /// non-bound gear is eligible. The roll consumes the shared stream the
+        /// same way every time, so a save replays to the same drops.
+        /// </summary>
+        private string RollPrefix(string baseItemId)
+        {
+            if (_prefixOrder.Count == 0)
+            {
+                return baseItemId;
+            }
+
+            if (!Items.TryGet(baseItemId, out ItemDefinition definition)
+                || definition == null
+                || !definition.IsEquippable
+                || definition.IsBound)
+            {
+                return baseItemId;
+            }
+
+            if (!Rng.Chance(PrefixTuning.Chance))
+            {
+                return baseItemId;
+            }
+
+            PrefixDefinition prefix = PickPrefix();
+            if (prefix == null)
+            {
+                return baseItemId;
+            }
+
+            // If the content did not build this pair, the drop stays plain
+            // rather than becoming an id the bag would silently skip.
+            string variantId = prefix.VariantId(baseItemId);
+            return Items.Contains(variantId) ? variantId : baseItemId;
+        }
+
+        private PrefixDefinition PickPrefix()
+        {
+            float total = 0f;
+
+            for (int i = 0; i < _prefixOrder.Count; i++)
+            {
+                float weight = _prefixOrder[i].Weight;
+                if (weight > 0f)
+                {
+                    total += weight;
+                }
+            }
+
+            if (total <= 0f)
+            {
+                return null;
+            }
+
+            float roll = Rng.Range(0f, total);
+            float cumulative = 0f;
+
+            for (int i = 0; i < _prefixOrder.Count; i++)
+            {
+                float weight = _prefixOrder[i].Weight;
+                if (weight <= 0f)
+                {
+                    continue;
+                }
+
+                cumulative += weight;
+                if (roll < cumulative)
+                {
+                    return _prefixOrder[i];
+                }
+            }
+
+            // Floating point can leave the last weight just short of the roll.
+            for (int i = _prefixOrder.Count - 1; i >= 0; i--)
+            {
+                if (_prefixOrder[i].Weight > 0f)
+                {
+                    return _prefixOrder[i];
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

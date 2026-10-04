@@ -42,6 +42,13 @@ namespace Ghasaq.Core.Content
         public const string ItemEmberRelic = "ember-relic";
         public const string ItemSentinelsCore = "sentinels-core";
 
+        // -------------------------------- prefixes -------------------------------
+
+        public const string PrefixEmberforged = "emberforged";
+        public const string PrefixStaunch = "staunch";
+        public const string PrefixVigilant = "vigilant";
+        public const string PrefixVeiltouched = "veiltouched";
+
         // ------------------------------- archetypes ------------------------------
 
         public const string ArchetypeHollowWalker = "hollow-walker";
@@ -206,7 +213,101 @@ namespace Ghasaq.Core.Content
                 }
             });
 
+            RegisterPrefixVariants(database);
             return database;
+        }
+
+        /// <summary>
+        /// The rare affixes of plan section 3.3. Weights are deliberate: the
+        /// raw-damage affix is the common one, the Ghasaq affix the rarest -
+        /// the same ordering the Sigils and the Soot follow, where the power
+        /// tied to the Ghasaq is never the cheap path.
+        /// </summary>
+        public static List<PrefixDefinition> BuildPrefixes()
+        {
+            return new List<PrefixDefinition>
+            {
+                new PrefixDefinition
+                {
+                    Id = PrefixEmberforged,
+                    DisplayName = "Emberforged",
+                    Gloss = "ما زال فيه جمر",
+                    Modifiers = new[] { StatModifier.Flat(StatId.AttackPower, 5f) },
+                    Weight = 4f
+                },
+                new PrefixDefinition
+                {
+                    Id = PrefixStaunch,
+                    DisplayName = "Staunch",
+                    Gloss = "لا ينكسر بسرعة",
+                    Modifiers = new[] { StatModifier.Flat(StatId.MaxHealth, 12f) },
+                    Weight = 3f
+                },
+                new PrefixDefinition
+                {
+                    Id = PrefixVigilant,
+                    DisplayName = "Vigilant",
+                    Gloss = "عينه على الباب",
+                    Modifiers = new[] { StatModifier.Percent(StatId.CritChance, 0.04f) },
+                    Weight = 2f
+                },
+                new PrefixDefinition
+                {
+                    Id = PrefixVeiltouched,
+                    DisplayName = "Veiltouched",
+                    Gloss = "مسَّه الحجاب",
+                    Modifiers = new[] { StatModifier.Flat(StatId.GhasaqPower, 7f) },
+                    Weight = 1f
+                }
+            };
+        }
+
+        /// <summary>
+        /// Pairs every prefix with every piece of non-bound gear, so a prefixed
+        /// drop is just another registered item. The variants carry the base
+        /// piece's lines plus the affix's, at one tier up - generated from the
+        /// base definitions, so a later rebalance of a base piece moves its
+        /// variants with it.
+        /// </summary>
+        private static void RegisterPrefixVariants(ItemDatabase database)
+        {
+            var bases = new List<ItemDefinition>();
+
+            foreach (ItemDefinition item in database.All)
+            {
+                if (item.IsEquippable && !item.IsBound)
+                {
+                    bases.Add(item);
+                }
+            }
+
+            List<PrefixDefinition> prefixes = BuildPrefixes();
+
+            for (int p = 0; p < prefixes.Count; p++)
+            {
+                PrefixDefinition prefix = prefixes[p];
+
+                for (int b = 0; b < bases.Count; b++)
+                {
+                    ItemDefinition baseItem = bases[b];
+                    StatModifier[] combined = new StatModifier[baseItem.Modifiers.Length + prefix.Modifiers.Length];
+
+                    Array.Copy(baseItem.Modifiers, combined, baseItem.Modifiers.Length);
+                    Array.Copy(prefix.Modifiers, 0, combined, baseItem.Modifiers.Length, prefix.Modifiers.Length);
+
+                    database.Register(new ItemDefinition
+                    {
+                        Id = prefix.VariantId(baseItem.Id),
+                        DisplayName = prefix.DisplayName + " " + baseItem.DisplayName,
+                        Description = baseItem.Description,
+                        Kind = baseItem.Kind,
+                        Rarity = PrefixTuning.Bumped(baseItem.Rarity),
+                        MaxStack = baseItem.MaxStack,
+                        RequiredLevel = baseItem.RequiredLevel,
+                        Modifiers = combined
+                    });
+                }
+            }
         }
 
         // =============================== player kit ===============================
@@ -1010,6 +1111,12 @@ namespace Ghasaq.Core.Content
             for (int i = 0; i < sigils.Count; i++)
             {
                 session.RegisterSigil(sigils[i]);
+            }
+
+            List<PrefixDefinition> prefixes = BuildPrefixes();
+            for (int i = 0; i < prefixes.Count; i++)
+            {
+                session.RegisterPrefix(prefixes[i]);
             }
 
             session.RegionId = RegionCamp;

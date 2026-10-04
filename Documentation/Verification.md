@@ -4,6 +4,56 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## السوابق: the rare prefixes on drops (2026-10-04)
+
+The last piece of plan §3.3 lands: a gear drop can come out carrying one rare
+affix. The affix is not a second kind of item — the content pairs it with every
+piece of non-bound gear into a variant definition (`prefix+base`, one rarity
+tier up, carrying the piece's lines plus the affix's), so every system after the
+roll sees one ordinary id. Quest rewards and starting kits are untouched; the
+roll consumes the shared stream, so a save replays the same drops; and the
+feature needed **no new save field**, because the variant is just another
+registered item.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **655 passed, 0 failed** (266 ms; 647 before this change, 8 new) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 62/62 checks** (58 before; 4 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,009,950 bytes (99 MB), sha256 `53a06b18f64fb884b88023a7f2d610ee53df5bcdda25d73bc8c6d746c5876f41`, signed and verified with `apksigner` |
+
+New in code:
+
+- `Core/Items/Prefix.cs` — `PrefixDefinition` (id, display name, gloss,
+  modifiers, weight, `VariantId`), and `PrefixTuning`: chance 0.12, the `+`
+  separator, and the tier bump (Common→Uncommon, Uncommon→Rare, Rare→Eclipse,
+  Eclipse→Eclipse, Mythic→Mythic — one step up, never minting the story tier).
+- `GameContent.BuildPrefixes` — four draft affixes: Emberforged +5 AttackPower
+  (weight 4), Staunch +12 MaxHealth (3), Vigilant +4% CritChance (2),
+  Veiltouched +7 GhasaqPower (1).
+- `GameContent.RegisterPrefixVariants` — pairs each prefix with each of the four
+  non-bound gear pieces (16 variants), generated from the base definitions, so a
+  later rebalance of a base piece moves its variants with it.
+- `GameSession.RegisterPrefix` / `RollPrefix` / `PickPrefix` — the drops-only
+  roll inside `GrantLoot`, consuming the shared generator in a fixed order; a
+  pair the content did not build falls back to the plain id rather than an id
+  the bag would silently skip.
+- Eight core tests (`PrefixTests`) — the numbers pinned, the variant matrix
+  (names, kinds, slots, tiers, line counts), the seed-13 roll pinned to
+  `staunch+sigilbearers-blade` and replayed for equality, `GrantItem` staying
+  plain, a no-prefix session staying plain, the bumped dismantle (40 for an
+  affixed Relic vs 15 plain), per-id forge levels, and the save round-trip.
+- Four smoke checks — a drop comes out prefixed, two runs of one seed grant the
+  same sequence, the prefixed piece dismantles for its bumped tier in the camp,
+  and the menu's dismantling row shows the bumped yield.
+
+**Not measured:** the affix names on screen are drawing, never *seen* — the
+smoke test's glyph sweep covers the row it builds, and nothing more.
+
 ## The Forge: the Soot sink (2026-10-04)
 
 The second half of plan §3.3 lands: the Hearth's hammer spends the banked

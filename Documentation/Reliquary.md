@@ -1,14 +1,15 @@
-# الأثر والموقد — The Reliquary and the Hearth (dismantle or forge)
+# الأثر والموقد — The Reliquary and the Hearth (prefixes, dismantle or forge)
 
 **Status:** draft for the economy-designer signature (plan §13). Numbers marked
 *draft* are placeholders to be tuned in the economy slice; the plan moves them to
 Remote Config in a later phase. Terms: [Naming.md](Naming.md).
 
-**Implemented in the Core (2026-10-04).** Both halves of §3.3 are code: gear
-held in the bag breaks down into السُّخام / Soot at the Hearth, the forge spends
-that Soot on levels, and the bank and the ledger ride every save. `SalvageTests`,
-`ForgeTests` and `SootBankTests` pin the yields, the costs, the refusals and the
-saves; the smoke test drives both hammers through the menu's own buttons. The
+**Implemented in the Core (2026-10-04).** All of §3.3 is code: gear drops can
+come out carrying one rare prefix, held gear breaks down into السُّخام / Soot at
+the Hearth, the forge spends that Soot on levels, and the bank and the ledger
+ride every save. `PrefixTests`, `SalvageTests`, `ForgeTests` and `SootBankTests`
+pin the affixes, yields, costs, refusals and saves; the smoke test drives the
+rolls and both hammers through the engine and the menu's own buttons. The
 numbers remain draft: what is signed off is the behaviour, not the tuning.
 
 ## The contract (plan §3.3, §3.7)
@@ -16,6 +17,9 @@ numbers remain draft: what is signed off is the behaviour, not the tuning.
 - الأثر / the Reliquary is **gear loot**, not spirit-bound loot: what a creature
   drops is an item anyone can carry, and the loop is the classic one —
   **kill → pick up → compare → dismantle, forge or wear**.
+- سوابق / the rare prefixes make a drop worth comparing: a small chance that a
+  piece of gear arrives with an affix, its name changed by it, and every
+  downstream system treating it as an ordinary item (see below).
 - Both hammers stand at الموقد / the Hearth: a camp region with no hostiles
   standing, exactly where the Sigil is swapped. Making them a place keeps the
   Hearth a hub and keeps a mid-fight accident from eating an upgrade.
@@ -62,6 +66,43 @@ One piece per call, because gear is `MaxStack = 1`. The menu lists each owned
 piece with the level it stands at, the bonus the next one adds and its price —
 and each dismantlable piece with the Soot its hammer would pay — so "compare"
 ends in visible numbers, not a guess.
+
+## السوابق / the rare prefixes
+
+A gear drop has a draft **12%** chance to come out carrying one rare affix.
+The affix never exists alone: the content pairs each prefix with every piece of
+non-bound gear into a **variant definition** whose id is `prefix+base`
+(`emberforged+ghasaq-edge`), named `Emberforged Ghasaq Edge`, carrying the
+piece's own lines plus the affix's, at one rarity tier up. Every system after
+the roll — bag, loadout, forge ledger, save — sees one ordinary id, which is why
+this feature needed no new save field at all.
+
+| Prefix | Gloss | Adds | Weight | Share of affix rolls (draft) |
+| --- | --- | --- | --- | --- |
+| `emberforged` | «ما زال فيه جمر» | +5 AttackPower | 4 | 40% |
+| `staunch` | «لا ينكسر بسرعة» | +12 MaxHealth | 3 | 30% |
+| `vigilant` | «عينه على الباب» | +4% CritChance | 2 | 20% |
+| `veiltouched` | «مسَّه الحجاب» | +7 GhasaqPower | 1 | 10% |
+
+Tier bump: Common → Uncommon, Uncommon → Rare, Rare → Eclipse, Eclipse →
+Eclipse, Mythic → Mythic — one step up, never minting the story's Mythic tier.
+Dismantling reads the tier, so an affixed piece is worth more than its plain
+sibling with no special-case code.
+
+Rules of the roll:
+
+- **Drops only.** Quest rewards and the starting kit pass through `GrantItem`,
+  not `GrantLoot`, and stay exactly what they say.
+- **Non-bound gear only.** Materials and story pieces are skipped before the
+  roll even happens.
+- **The shared stream.** The roll consumes the same `DeterministicRng` the rest
+  of the session uses, in a fixed order, so a save replays the same drops; the
+  smoke test pins that two runs of one seed grant the same sequence.
+- **A missing pair falls back to plain.** If the content did not build the
+  variant, the drop stays base rather than becoming an id the bag would silently
+  skip.
+- **Forge levels live on the variant.** The affixed piece and its plain sibling
+  are two different pieces in the ledger — as they are in the bag.
 
 ## The numbers (draft)
 
@@ -118,6 +159,9 @@ Chosen shapes, not just numbers:
 
 | Piece | Where |
 | --- | --- |
+| Prefix definitions and numbers | `Core/Items/Prefix.cs` → `PrefixDefinition`, `PrefixTuning` (chance, weights, bump) |
+| The variant definitions | `GameContent.BuildItems` → `RegisterPrefixVariants` (prefix × non-bound gear, generated from the base lines) |
+| The roll | `GameSession.RollPrefix` / `PickPrefix`, applied per stack inside `GrantLoot` |
 | Salvage yields and failure reasons | `Core/Items/Salvage.cs` → `SalvageTuning`, `SalvageFailure` |
 | Forge costs, bonuses and failure reasons | `Core/Items/Forge.cs` → `ForgeTuning`, `ForgeFailure` |
 | The ledger of levels | `Core/Items/Forge.cs` → `ItemForge` (`LevelOf`, `SetLevel`, `ToStacks`, `LoadFrom`) |
@@ -126,12 +170,10 @@ Chosen shapes, not just numbers:
 | The worn bonus | `EquipmentLoadout` reads the ledger in `ApplyModifiers` (same token as the piece's lines, so one unequip removes both) and `RefreshModifiers` re-applies it when a worn piece is forged |
 | The save | `SaveGame.SootBalance` (`soot`) and `SaveGame.Forge` (`forge`); the ledger loads **before** the loadout, so worn bonuses come back |
 | The Hearth page | `scripts/GameMenu.cs` → `MenuPage.Hearth`: the bank note, forging rows (worn first) and dismantling rows, then the Sigil link |
-| Measured loop | `Tests/Godot/GodotSmoke.cs` → `CheckHearthSalvage`, `CheckHearthForge` (the core rules) and `CheckHearthMenu` (both hammers through the menu's own buttons, after travelling to the camp the way the World page does) |
+| Measured loop | `Tests/Godot/GodotSmoke.cs` → `CheckPrefixDrops` (the roll, its replay and the bumped dismantle tier), `CheckHearthSalvage`, `CheckHearthForge` (the core rules) and `CheckHearthMenu` (both hammers through the menu's own buttons, after travelling to the camp the way the World page does) |
 
 ## What is deliberately not built yet
 
-- **سوابق / prefixes** — rare affix rolls on drops. The loot generator is the
-  right place for them, and faking them in the tables is the wrong one.
 - **Comparison UI** — "compare" is still the player reading rows in the menu; a
   side-by-side view is a UX slice.
 
@@ -142,7 +184,9 @@ The loop passes when **a new player**:
 - [ ] can say where the hammers stand (the Hearth) and where they do not,
 - [ ] dismantles a piece they might have used, and feels the trade,
 - [ ] forges a piece they mean to keep, and can say what the level bought,
-- [ ] sees the spent Soot and the raised level as one decision, not two screens.
+- [ ] sees the spent Soot and the raised level as one decision, not two screens,
+- [ ] can tell an affixed drop from its plain sibling, and say why it is worth
+      keeping.
 
 | Role | Name | Date | Signature |
 | --- | --- | --- | --- |

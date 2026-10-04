@@ -63,6 +63,7 @@ namespace Ghasaq.Tests
             CheckSootSurface();
             CheckHearthSalvage();
             CheckHearthForge();
+            CheckPrefixDrops();
             CheckHearthMenu();
 
             if (_failures == 0)
@@ -410,6 +411,95 @@ namespace Ghasaq.Tests
                 "the forge level and the bank survive a save round-trip");
         }
 
+        // --------------------------------------------------------- prefixes ---
+
+        /// <summary>
+        /// The rare prefixes (plan section 3.3) through the engine: a gear drop
+        /// can come out prefixed, the same seed replays the same drops, and the
+        /// prefixed piece dismantles for its bumped tier.
+        /// </summary>
+        private void CheckPrefixDrops()
+        {
+            GameSession session = BuildSession();
+            session.RegisterLootTable(new LootTable
+            {
+                Id = "smoke-gear",
+                Guaranteed = new[] { new LootEntry(GameContent.ItemSigilbearersBlade, 1f, 1, 1) },
+                MinRolls = 0,
+                MaxRolls = 0
+            });
+
+            EnemyArchetype archetype = GameContent.BuildHollowWalker();
+            Combatant victim = archetype.Create("victim", new Float3(0f, 0f, 6f));
+            victim.LootTableId = "smoke-gear";
+
+            var first = new List<string>();
+            session.LootGranted += stack => first.Add(stack.ItemId);
+
+            for (int i = 0; i < 40; i++)
+            {
+                session.GrantLoot(victim);
+            }
+
+            string prefixedId = null;
+            for (int i = 0; i < first.Count; i++)
+            {
+                if (first[i].Contains("+"))
+                {
+                    prefixedId = first[i];
+                    break;
+                }
+            }
+
+            Check(prefixedId != null, "a gear drop can come out carrying a rare prefix");
+
+            if (prefixedId == null)
+            {
+                return;
+            }
+
+            // Replay: an identical run rolls an identical sequence.
+            GameSession twin = BuildSession();
+            twin.RegisterLootTable(new LootTable
+            {
+                Id = "smoke-gear",
+                Guaranteed = new[] { new LootEntry(GameContent.ItemSigilbearersBlade, 1f, 1, 1) },
+                MinRolls = 0,
+                MaxRolls = 0
+            });
+
+            Combatant twinVictim = archetype.Create("victim", new Float3(0f, 0f, 6f));
+            twinVictim.LootTableId = "smoke-gear";
+
+            var second = new List<string>();
+            twin.LootGranted += stack => second.Add(stack.ItemId);
+
+            for (int i = 0; i < 40; i++)
+            {
+                twin.GrantLoot(twinVictim);
+            }
+
+            bool same = first.Count == second.Count;
+            for (int i = 0; same && i < first.Count; i++)
+            {
+                same = first[i] == second[i];
+            }
+
+            Check(same, "the same seed grants the same prefixed drops");
+
+            // The bumped tier: dismantling reads the variant's higher rarity.
+            string baseId = prefixedId.Substring(prefixedId.IndexOf('+') + 1);
+            ItemDefinition baseItem = session.Items.Get(baseId);
+            int bumpedSoot = SalvageTuning.SootFor(PrefixTuning.Bumped(baseItem.Rarity));
+
+            session.EnterRegion(GameContent.RegionCamp);
+
+            Check(session.TrySalvage(prefixedId, out _, out int soot)
+                && soot == bumpedSoot
+                && soot > SalvageTuning.SootFor(baseItem.Rarity),
+                "the prefixed piece dismantles for its bumped tier");
+        }
+
         // ------------------------------------------------------ the hearth (menu) ---
 
         /// <summary>
@@ -452,6 +542,7 @@ namespace Ghasaq.Tests
                 + (string.IsNullOrEmpty(travelError) ? "" : " (" + travelError + ")"));
             root.Session.GrantItem(GameContent.ItemEmberRelic, 1);
             root.Session.GrantItem(GameContent.ItemSigilbearersBlade, 1);
+            root.Session.GrantItem("emberforged+ember-relic", 1);
 
             menu.SetOpen(true);
 
@@ -503,6 +594,10 @@ namespace Ghasaq.Tests
                     Check(FindRow(rows, "سُخام مدَّخر: 3") != null,
                         "the Hearth page redraws with the spent balance");
                 }
+
+                Button prefixedRow = FindRow(rows, "فكّ", "Emberforged");
+                Check(prefixedRow != null && prefixedRow.Text.Contains("40 سُخام"),
+                    "a prefixed piece's row carries its bumped dismantling tier");
             }
 
             menu.SetOpen(false);

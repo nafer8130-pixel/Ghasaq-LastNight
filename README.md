@@ -34,9 +34,9 @@ Unity folders (`Assets/`, `Packages/`, `ProjectSettings/`) are gone too.
 
 | Area | State |
 | --- | --- |
-| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, Soot and the Dimming, the Reliquary's hammers (dismantling into, and forging from, a permanent Soot bank), items, quests, world, saves | **Done — 647 tests passing** |
+| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, Soot and the Dimming, the Reliquary (rare prefixes, dismantling into and forging from a permanent Soot bank), items, quests, world, saves | **Done — 655 tests passing** |
 | Godot game layer (`scripts/`, `scenes/`) — arena, player, enemies, camera, input, HUD (Sigil Price surface and Soot meter), menu (with the Hearth's forging and dismantling bench), saves | **Done — builds clean, runs headless** |
-| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface, the hit-feedback rules, the Soot meter and its surface, the Hearth's dismantling and forging loops driven through the menu's own buttons |
+| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface, the hit-feedback rules, the Soot meter and its surface, the rare prefixes (a drop rolls one, the same seed replays it), the Hearth's dismantling and forging loops driven through the menu's own buttons |
 | Android ARM64 APK | **Produced and validated locally** — see below |
 | GitHub Actions CI | `ci.yml` runs the Godot gates; `android.yml` exports the ARM64 APK |
 
@@ -46,7 +46,7 @@ The following are verified **by execution**, on a machine with no game engine
 installed beyond Godot itself:
 
 - **The game rules:** `bash Tools/test-core.sh` compiles the real core sources and
-  runs **647 tests**.
+  runs **655 tests**.
 - **The Godot assembly:** `bash Tools/test-godot.sh` builds `Ghasaq.csproj`,
   imports the project, and runs a headless smoke test **inside Godot** that proves
   the deterministic RNG parity, boots a session, resolves a real fight,
@@ -61,11 +61,13 @@ installed beyond Godot itself:
   its 15 Soot, and pressing it banks the balance and redraws the page; a Blade
   row then offers its first forge level for 12 Soot, spends the bank to 3 and
   redraws again — with every glyph of both pages' rows checked against the UI
-  font.
+  font. Before all that, the same smoke test rolls gear drops until one comes
+  out carrying a rare prefix, proves a second run of the same seed grants the
+  same sequence, and dismantles the affixed piece for its bumped tier.
 - **The main scene:** running `scenes/Main.tscn` headless assembles the game —
   `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0`.
 - **A real APK:** `bash Tools/build-android.sh` produced
-  `build/android/ghasaq.apk` (104,005,854 bytes / 99 MB; final run recorded in
+  `build/android/ghasaq.apk` (104,009,950 bytes / 99 MB; final run recorded in
   `Documentation/Verification.md`) locally, containing
   `lib/arm64-v8a/libgodot_android.so`, `assets/.godot/mono/publish/arm64/Ghasaq.dll`,
   `Ghasaq.Core.dll` and both `.fontdata` files the Arabic Sigil lines draw with,
@@ -86,7 +88,7 @@ not.
 ```bash
 bash Tools/check-core-purity.sh   # the core must stay engine-free (Godot/Unity/Unreal)
 bash Tools/check-naming.sh        # no retired identifier from the earlier identity remains
-bash Tools/test-core.sh           # purity gate + 647 core tests
+bash Tools/test-core.sh           # purity gate + 655 core tests
 bash Tools/check-godot-project.sh # the Godot project layout is complete and engine-clean
 bash Tools/test-godot.sh          # build the C# assembly + headless smoke test
 bash Tools/build-android.sh       # export the Android ARM64 APK (needs Godot + Android SDK)
@@ -107,7 +109,7 @@ scripts/                 the Godot game layer (C#): views, camera, input, HUD, m
 assets/fonts/            the bundled Noto fonts (Latin + Arabic) the UI text draws with
 Core/                    the engine-free C# game rules (the source of truth)
 Tests/
-  Ghasaq.Core.Tests/  xUnit suite for the core (647 tests)
+  Ghasaq.Core.Tests/  xUnit suite for the core (655 tests)
   Ghasaq.Core.Build/  compiles Core/ as a portable netstandard2.1 library
   Godot/                   the headless Godot smoke test
 Tools/                   command-line verification and build scripts
