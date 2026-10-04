@@ -20,10 +20,19 @@ namespace Ghasaq.Game
         public PlayerInputReader Input;
         public Camera3D Camera;
 
-        public float Distance = 6.5f;
+        /// <summary>
+        /// First-draft framing for the decided 3/4 tilted camera
+        /// (Documentation/CameraDecision.md): high enough and far enough that the
+        /// player and three hostiles read without turning. Tuning these numbers is
+        /// expected; the readability gate is measured in the slice.
+        /// </summary>
+        [Export] public float Distance = 11f;
+
         public float MinDistance = 2f;
-        public float Height = 1.6f;
-        public float FollowDamping = 12f;
+
+        [Export] public float Height = 1.6f;
+
+        [Export] public float FollowDamping = 12f;
 
         /// <summary>Layers the camera must not see through: the world and camera blockers.</summary>
         public uint ObstructionMask = Arena.WorldLayer | (1u << 2);
@@ -70,7 +79,7 @@ namespace Ghasaq.Game
             _smoothedTarget = _smoothedTarget.Lerp(focus, 1f - Mathf.Exp(-FollowDamping * delta));
 
             float yawRadians = Mathf.DegToRad(Input?.Yaw ?? 0f);
-            float pitchRadians = Mathf.DegToRad(Input?.Pitch ?? 12f);
+            float pitchRadians = Mathf.DegToRad(Input?.Pitch ?? PlayerInputReader.DefaultPitchDegrees);
             float cosPitch = Mathf.Cos(pitchRadians);
 
             var lookDirection = new Vector3(

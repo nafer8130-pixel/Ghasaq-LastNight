@@ -50,6 +50,35 @@ The table below records the runs made **before** the renaming — including the
 pre-rename proof that the core and the Godot layer were healthy; its command
 names have been updated to the current identity.
 
+## Slice budgets and camera (days 15–45), 2026-10-04
+
+Two verifiable pieces of the slice have landed: the combat budgets from plan §7
+are now code the build enforces, and the decided 3/4 camera has its first-draft
+defaults.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core test suite (with the new budget tests) | `bash Tools/test-core.sh` | **567 passed, 0 failed** (365 ms) |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass** |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 300` | **Pass** — `Ghasaq ready: region 'grey-wilds', ...` |
+
+New in code:
+
+- `Core/Combat/CombatTuning.cs` — the plan's numbers in one place: telegraph
+  floor 0.40 s, hit-stop band 40–80 ms, three hostiles on screen.
+- `ContentValidator` now fails the build when a damaging enemy move is faster
+  than the telegraph floor; the fault-injection test proves the rule fires. The
+  shipped Cinder Maul was authored at 0.38 s and was raised to 0.40 s.
+- Camera defaults for [CameraDecision.md](CameraDecision.md): pitch 50° (range
+  20–60°), distance 11 m.
+
+**Not measured:** the camera's readability and feel, the hit-stop animation
+itself (the band is recorded in code; the view work is not done), and the 60 fps
+budget on the target device. Those need eyes, hands and hardware.
+
 ## What has been run, and passed
 
 All of the following were run in the environment this port was written in, which
@@ -148,7 +177,7 @@ The workflows' steps were validated locally first, and then on GitHub itself:
 | Current | Godot 4.5 (`project.godot`, `scripts/`, `scenes/`) | C# in `Core/` | Compiles, runs headless, and exports a validated APK |
 
 The Unreal layer was removed without ever having been compiled; the Godot layer has
-been. The engine-free core (and its 563 tests) carried through all three engines
+been. The engine-free core (and its 567 tests) carried through all three engines
 unchanged, which is the entire point of the boundary.
 
 ## Reproducing the verification

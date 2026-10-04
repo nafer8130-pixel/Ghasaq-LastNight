@@ -1,7 +1,10 @@
 # Camera decision — 3/4 tilted top-down
 
-**Status:** decided in this document; **awaiting the combat-designer signature**
-(plan §13, days 1–14). Implementation lands with the slice (days 15–45).
+**Status:** decided in this document; implemented as **first-draft defaults**
+(2026-10-04: `scripts/PlayerInputReader.cs` starts at pitch 50° with a 20–60°
+range, `scripts/CameraRig.cs` follows at 11 m). The feel and readability gates
+below remain **unmeasured** — they need eyes and a device. **Awaiting the
+combat-designer signature** (plan §13, days 1–14).
 
 ## The decision
 

@@ -482,7 +482,7 @@ namespace Ghasaq.Core.Content
                         Kind = AbilityKind.Melee,
                         DamageType = DamageType.Physical,
                         CooldownSeconds = 1.4f,
-                        WindupSeconds = 0.38f,
+                        WindupSeconds = 0.40f,
                         RecoverySeconds = 0.3f,
                         Range = 2.2f,
                         ConeHalfAngleDegrees = 60f,

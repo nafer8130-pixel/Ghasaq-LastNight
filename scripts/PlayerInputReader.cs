@@ -23,7 +23,14 @@ namespace Ghasaq.Game
         /// <summary>Keyboard camera-orbit speed, degrees per second, for Q/E.</summary>
         public float CameraTurnSpeed = 140f;
 
-        public float MinPitchDegrees = -35f;
+        /// <summary>
+        /// Starting pitch for the decided 3/4 tilted camera
+        /// (Documentation/CameraDecision.md): the view starts high and looks down,
+        /// and the range below never lets it fall under the horizon.
+        /// </summary>
+        public const float DefaultPitchDegrees = 50f;
+
+        public float MinPitchDegrees = 20f;
         public float MaxPitchDegrees = 60f;
 
         /// <summary>Enables keyboard and mouse. Turned off on a pure touch build.</summary>
@@ -35,7 +42,7 @@ namespace Ghasaq.Game
         private int _heldAbility = -1;
 
         private float _yaw;
-        private float _pitch = 12f;
+        private float _pitch = DefaultPitchDegrees;
 
         /// <summary>Current camera yaw in core degrees around Y.</summary>
         public float Yaw => _yaw;

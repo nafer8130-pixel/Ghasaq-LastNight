@@ -15,7 +15,7 @@ The core test suite needs no engine. Godot needs no Android SDK until you export
 ```bash
 bash Tools/check-core-purity.sh   # the core must stay engine-free
 bash Tools/check-naming.sh        # no retired identifier from the earlier identity remains
-bash Tools/test-core.sh           # purity gate, compile, 563 tests
+bash Tools/test-core.sh           # purity gate, compile, 567 tests
 bash Tools/check-godot-project.sh # project layout is complete and engine-clean
 ```
 
@@ -24,7 +24,7 @@ runs the xUnit suite. Expected output:
 
 ```
 check-core-purity: OK (C# core in Core/ is engine-free)
-Passed!  - Failed: 0, Passed: 563, Skipped: 0, Total: 563
+Passed!  - Failed: 0, Passed: 567, Skipped: 0, Total: 567
 check-godot-project: OK (Godot 4.5 project layout is complete and engine-clean)
 ```
 
@@ -149,7 +149,7 @@ Two workflows:
 
 | Workflow | When | What it does |
 | --- | --- | --- |
-| **`ci.yml`** | Every push and pull request | The Godot gates: naming gate, core purity, 563 core tests, project layout, C# build, headless smoke test. |
+| **`ci.yml`** | Every push and pull request | The Godot gates: naming gate, core purity, 567 core tests, project layout, C# build, headless smoke test. |
 | **`android.yml`** | Pushes to `main` and manual dispatch | Installs Godot + export templates + the Android SDK, exports the ARM64 APK, and classifies the outcome. |
 
 There are **no engine licence secrets** anywhere — Godot and its export templates

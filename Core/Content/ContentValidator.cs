@@ -371,6 +371,32 @@ namespace Ghasaq.Core.Content
                         " but only has " + archetype.Abilities.Count + " abilities.");
                 }
 
+                // The plan's readability floor: a damaging enemy move must telegraph
+                // long enough to be answered (plan section 7). A fast lethal move is
+                // not a difficulty setting, it is an unreadable one.
+                if (archetype.Abilities != null)
+                {
+                    for (int j = 0; j < archetype.Abilities.Count; j++)
+                    {
+                        AbilityDefinition ability = archetype.Abilities[j];
+
+                        if (ability == null)
+                        {
+                            report.Error(id, "Has a null ability at index " + j + ".");
+                            continue;
+                        }
+
+                        if (ability.DealsDamage && ability.WindupSeconds < CombatTuning.TelegraphMinSeconds)
+                        {
+                            report.Error(
+                                id,
+                                "Ability '" + ability.Id + "' deals damage after only " + ability.WindupSeconds +
+                                "s of wind-up; a lethal move needs at least " + CombatTuning.TelegraphMinSeconds +
+                                "s so it can be read (plan section 7).");
+                        }
+                    }
+                }
+
                 if (!string.IsNullOrEmpty(archetype.LootTableId) && !lootTables.ContainsKey(archetype.LootTableId))
                 {
                     report.Error(id, "Points at loot table '" + archetype.LootTableId + "', which does not exist.");

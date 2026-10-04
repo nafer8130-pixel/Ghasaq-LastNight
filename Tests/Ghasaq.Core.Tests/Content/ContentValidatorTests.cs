@@ -238,6 +238,35 @@ namespace Ghasaq.Core.Tests.Content
             Assert.True(report.WarningCount > 0);
         }
 
+        [Fact]
+        public void ArchetypeAbilityFasterThanTheTelegraphFloor_IsReported()
+        {
+            Shipped content = Shipped.Build();
+
+            AbilityDefinition ability = content.Archetypes[0].Abilities[0];
+            ability.WindupSeconds = CombatTuning.TelegraphMinSeconds - 0.1f;
+
+            ContentReport report = content.Validate();
+
+            Assert.False(report.IsClean);
+            Assert.True(Mentions(report, "wind-up"), Describe(report));
+        }
+
+        [Fact]
+        public void ShippedAbilityWindUps_AreAcceptedAtTheExactFloor()
+        {
+            // The floor is a minimum, not something to clear by epsilon: an ability
+            // authored exactly at 400 ms must pass, or the number in the plan and the
+            // number in the build disagree.
+            Shipped content = Shipped.Build();
+
+            content.Archetypes[0].Abilities[0].WindupSeconds = CombatTuning.TelegraphMinSeconds;
+
+            ContentReport report = content.Validate();
+
+            Assert.True(report.IsClean, Describe(report));
+        }
+
         // -------------------------------- quest faults -----------------------------
 
         [Fact]
