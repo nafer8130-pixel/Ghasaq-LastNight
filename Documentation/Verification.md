@@ -37,8 +37,14 @@ Signer #1 certificate DN: CN=Godot, OU=Godot Engine, O=Stichting Godot, C=NL
 ```
 
 Still not verified, because they need hardware: installing the APK on a physical
-device, touch controls, frame rate, and the camera on real devices. The GitHub
-Actions workflows still have not run on GitHub.
+device, touch controls, frame rate, and the camera on real devices.
+
+Both workflows have **now run on GitHub**, on the rename commit `f6832c2`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #2 | **success** — naming gate, core purity, 563 tests, layout, build, smoke test |
+| `android.yml` | Android ARM64 #2 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
 
 The table below records the runs made **before** the renaming — including the
 pre-rename proof that the core and the Godot layer were healthy; its command
@@ -128,11 +134,10 @@ frame rate and the camera on real hardware are untested. That requires a phone.
 | --- | --- | --- |
 | **Installing and playing the APK on a device** | Requires hardware. | Install the APK on a phone. |
 | **Performance on target hardware** | Requires hardware. | Profile on a mid-range phone. |
-| **The GitHub Actions workflows on GitHub** | They are new and were not dispatched. | Push and let `ci.yml` / `android.yml` run. |
 | **A release-signed APK** | No release keystore exists in the repository. | Add one and set `GHASAQ_EXPORT_MODE=release`. |
 
-The workflows' steps were validated by running the same scripts locally; the
-workflows themselves have not executed on a GitHub runner.
+The workflows' steps were validated locally first, and then on GitHub itself:
+`ci.yml` and `android.yml` both succeeded on `f6832c2` (2026-10-04).
 
 ## Migration history (all engine migrations recorded honestly)
 

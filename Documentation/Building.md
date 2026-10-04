@@ -163,9 +163,9 @@ are free to download, which is what makes a real build on a stock runner possibl
 | **BUILD FAILURE** | The toolchain was present but the export failed. | fails |
 | **ENVIRONMENT LIMITATION** | The runner lacked Godot or the Android SDK. | warns |
 
-> **Not yet run on GitHub.** The workflow is written and the identical script
-> produced a real APK locally, but no GitHub Actions run has happened yet. Treat its
-> first run as the thing that proves it.
+> **It has run on GitHub.** On 2026-10-04 the `android.yml` workflow exported and
+> uploaded the ARM64 APK on a GitHub runner (run "Android ARM64 #2", success, on
+> `f6832c2`), with `ci.yml` green on the same commit.
 
 ## Troubleshooting
 

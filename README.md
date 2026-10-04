@@ -63,9 +63,10 @@ installed beyond Godot itself:
   never been installed on a physical device.
 
 What is **not** verified: the APK has not been installed on a physical device, and
-the GitHub Actions workflow has not yet run on GitHub (it was validated by running
-the same script locally). `Documentation/Verification.md` states exactly what was
-run and what was not.
+touch controls, frame rate and the camera on real hardware are untested — that
+needs a phone. Both workflows have now run on GitHub and passed: `ci.yml` and the
+Android ARM64 export both succeeded on the rename commit (`f6832c2`).
+`Documentation/Verification.md` states exactly what was run and what was not.
 
 ### Commands to check what can be checked
 
