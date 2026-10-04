@@ -63,12 +63,12 @@ New in code:
   full-health bearer in the camp with the Soot meter at zero, the arrival spot
   and empty camp hold, and the risen bearer can walk back out to the Wilds.
 
-Recorded runs:
+Both workflows ran on GitHub for the change, on `d5a015f`:
 
 | Workflow | Run | Result |
 | --- | --- | --- |
-| `ci.yml` | CI #CI-RUN-PLACEHOLDER | RUN-RESULT-PLACEHOLDER |
-| `android.yml` | Android ARM64 #ANDROID-RUN-PLACEHOLDER | RUN-RESULT-PLACEHOLDER |
+| `ci.yml` | CI #25 | **success** — naming gate, purity, the 661 tests, layout, build, smoke (78 checks) |
+| `android.yml` | Android ARM64 #25 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
 
 What this pass does not cover: none of it has been played on a device. The
 screen's touch path is the menu's existing Button path, exercised in the smoke
