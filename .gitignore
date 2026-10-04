@@ -1,0 +1,55 @@
+# ==============================================================================
+# SHADOWBOUND: THE LAST NIGHT - Git ignore
+# Godot 4.5 is the engine. This ignores what Godot, the .NET build and the
+# Android export generate. The old Unity and Unreal folders are gone.
+# ==============================================================================
+
+# ------------------------------ Godot generated -------------------------------
+# Import cache, editor state and the generated C# build output.
+/.godot/
+/.import/
+*.translation
+
+# The editor's window/layout state, if ever written next to the project.
+/editor_layout.cfg
+
+# ------------------------------ Android export --------------------------------
+# The exported APK/AAB and any Gradle output.
+/build/
+/android/
+*.apk
+*.aab
+# Keystore passwords must never be committed.
+export_credentials.cfg
+*.keystore
+*.jks
+
+# ------------------------------ .NET / test harness ---------------------------
+# NOTE: Shadowbound.csproj, Shadowbound.sln and the Tests/ csproj files are
+# committed: Godot's .NET export requires the solution to bundle the assembly.
+Tests/**/bin/
+Tests/**/obj/
+**/bin/
+**/obj/
+**/TestResults/
+*.trx
+*.coverage
+*.nupkg
+
+# ------------------------------ OS / editor junk ------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vs/
+.vscode/
+.idea/
+
+# ------------------------------ Local override files --------------------------
+*.local.json
+.env
+.env.*
+mono_crash.*.json

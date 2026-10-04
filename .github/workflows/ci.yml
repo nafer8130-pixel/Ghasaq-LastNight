@@ -1,0 +1,59 @@
+name: CI
+
+# Verification gates that need no Android toolchain:
+#   * the engine-free core is pure and its 563 tests pass
+#   * the repository is a coherent Godot 4.5 project
+#   * the Godot C# assembly builds and a headless smoke test runs inside Godot
+#
+# The Android ARM64 export lives in its own workflow (.github/workflows/android.yml)
+# because it needs the Android SDK and the Godot export templates.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: '4.5-stable'
+
+jobs:
+  verify:
+    name: Verify (core + Godot project)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 (Godot C# target framework)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup .NET 9 (core test target framework)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install Godot 4.5 (.NET) editor
+        run: |
+          curl -sSL -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION%-*}-stable_mono_linux_x86_64.zip"
+          unzip -q godot.zip
+          BIN="$PWD/Godot_v${GODOT_VERSION%-*}-stable_mono_linux_x86_64/Godot_v${GODOT_VERSION%-*}-stable_mono_linux.x86_64"
+          test -x "$BIN"
+          echo "GODOT_BIN=$BIN" >> "$GITHUB_ENV"
+          echo "$(dirname "$BIN")" >> "$GITHUB_PATH"
+
+      - name: Core purity (engine-free C#)
+        run: bash Tools/check-core-purity.sh
+
+      - name: Core tests (563)
+        run: bash Tools/test-core.sh
+
+      - name: Godot project layout
+        run: bash Tools/check-godot-project.sh
+
+      - name: Build Godot C# assembly and run headless smoke test
+        run: bash Tools/test-godot.sh "$GODOT_BIN"
