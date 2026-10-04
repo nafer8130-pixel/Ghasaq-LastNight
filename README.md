@@ -58,7 +58,8 @@ installed beyond Godot itself:
   half a minute of rest clears it, and every glyph of the bar's label draws),
   and drives the Hearth's salvage loop through the menu's own buttons: the run
   travels to the camp, the Hearth row shows the bank, a rare Relic row offers
-  its 15 Soot, and pressing it banks the balance and redraws the page.
+  its 15 Soot, and pressing it banks the balance and redraws the page — with
+  every glyph of both pages' rows checked against the UI font.
 - **The main scene:** running `scenes/Main.tscn` headless assembles the game —
   `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0`.
 - **A real APK:** `bash Tools/build-android.sh` produced

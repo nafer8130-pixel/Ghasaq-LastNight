@@ -529,7 +529,7 @@ namespace Ghasaq.Game
                 int soot = SalvageTuning.SootFor(definition.Rarity);
 
                 AddRow(
-                    "فكّ  " + name + Describe(id) + "  →  " + soot + " سُخام",
+                    "فكّ  " + name + Describe(id) + "  ->  " + soot + " سُخام",
                     () =>
                     {
                         if (Root.Session.TrySalvage(id, out SalvageFailure failure, out int yielded))

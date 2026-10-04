@@ -20,7 +20,7 @@ affix prefixes and the comparison view are deliberately **not** built yet —
 | Core test suite | `bash Tools/test-core.sh` | **633 passed, 0 failed** (317 ms; 619 before this change, 14 new) |
 | Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
 | Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
-| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 48/48 checks** (33 before; 15 new) |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 50/50 checks** (33 before; 17 new) |
 | The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
 | Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,001,758 bytes (99 MB), sha256 `dabba298e00efbe8c8f329335644a0db8877e1c4387d57d24ea3ae30ff2d1746`, signed and verified with `apksigner` |
 
@@ -42,15 +42,20 @@ New in code:
   without the field loads with an empty bank (`Deserialize_DefaultsMissingFields`
   pins it).
 - `scripts/GameMenu.cs` — `MenuPage.Hearth`: the bank note, one row per
-  dismantlable piece with its yield (`فكّ  Ember Relic … → 15 سُخام`), refusals
+  dismantlable piece with its yield (`فكّ  Ember Relic … -> 15 سُخام`), refusals
   reported as sentences by `DescribeSalvageFailure`, and a link to the Sigil
   stand. Reached from the main page's `الموقد — HEARTH   (سُخام: N)` row.
 - Fourteen core tests (`SalvageTests`, `SootBankTests`) plus three assertions in
   `SaveSystemTests` — the yields, the loop, the five refusals, the save
   round-trip, and the bank's arithmetic.
-- Fifteen smoke checks — eight for the core loop (refused away from the camp
+- Seventeen smoke checks — eight for the core loop (refused away from the camp
   without loss, rare gear pays 15, the piece leaves the bag, bound and material
-  refusals, save round-trip) and seven driving the menu's own buttons.
+  refusals, save round-trip), seven driving the menu's own buttons, and two
+  glyph sweeps of the built rows. The sweeps earned their place immediately:
+  the first draft of the salvage row used `→` (U+2192), which the vendored UI
+  font does not carry - it would have drawn as tofu on screen while every
+  string assertion passed - so the row now uses the menu's `->` convention and
+  the sweep measures the built labels, not a copy of them.
 
 **Not measured:** the Hearth page is drawing. The environment still has no
 display; the page has been exercised by compilation, by the smoke test pressing

@@ -411,6 +411,11 @@ namespace Ghasaq.Tests
 
             VBoxContainer rows = menu.GetNode<VBoxContainer>("Panel/VBox/Rows");
 
+            string missing = MissingGlyphs(rows);
+            Check(missing.Length == 0,
+                "every glyph of the main page's rows draws (the Hearth row included)"
+                + (missing.Length == 0 ? "" : " (missing: " + missing + ")"));
+
             Button hearthRow = FindRow(rows, "الموقد — HEARTH");
             Check(hearthRow != null && hearthRow.Text.Contains("سُخام: 0"),
                 "the main page shows the Hearth with the banked Soot");
@@ -418,6 +423,11 @@ namespace Ghasaq.Tests
             if (hearthRow != null)
             {
                 hearthRow.EmitSignal(BaseButton.SignalName.Pressed);
+
+                missing = MissingGlyphs(rows);
+                Check(missing.Length == 0,
+                    "every glyph of the Hearth page's rows draws"
+                    + (missing.Length == 0 ? "" : " (missing: " + missing + ")"));
 
                 Button salvageRow = FindRow(rows, "Ember Relic");
                 Check(salvageRow != null && salvageRow.Text.Contains("15 سُخام"),
@@ -450,6 +460,36 @@ namespace Ghasaq.Tests
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Every character of every visible row, checked against the font the
+        /// menu draws with. An Arabic label whose glyphs the font lacks is
+        /// nothing at all on screen, and setting the text never fails - so the
+        /// built strings are measured, not a copy of them.
+        /// </summary>
+        private static string MissingGlyphs(VBoxContainer rows)
+        {
+            Font font = ThemeDB.FallbackFont;
+            string missing = "";
+
+            for (int i = 0; i < rows.GetChildCount(); i++)
+            {
+                if (!(rows.GetChild(i) is Button row) || !row.Visible)
+                {
+                    continue;
+                }
+
+                for (int c = 0; c < row.Text.Length; c++)
+                {
+                    if (!font.HasChar(row.Text[c]))
+                    {
+                        missing += row.Text[c];
+                    }
+                }
+            }
+
+            return missing;
         }
 
         // -------------------------------------------------------------- soot ---
