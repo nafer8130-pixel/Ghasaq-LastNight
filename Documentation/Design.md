@@ -65,6 +65,12 @@ reuse the opening area's numbers.
 
 ## The Sigilbearer's abilities
 
+> The production combat style is the الوَسْم / Sigil with its ثمن / Price: one
+> mark that changes a combat action radically and a visible mechanical cost. The
+> five for the slice are specified in [Sigils.md](Sigils.md), which supersedes
+> this per-slot kit for production work. The kit below is the current,
+> implemented baseline.
+
 Five slots, each with a clear job, so combat is about choosing the right answer
 rather than cycling cooldowns.
 

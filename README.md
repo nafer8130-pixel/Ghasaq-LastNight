@@ -141,6 +141,8 @@ The core test suite needs no engine. Godot needs no Android SDK until you export
 | [Architecture.md](Documentation/Architecture.md) | Module boundaries, the engine-free core, simulation model, determinism, coordinate conversion |
 | [Design.md](Documentation/Design.md) | The original world, factions, creatures and abilities |
 | [Naming.md](Documentation/Naming.md) | The naming contract: identity, the system dictionary, the retired words, the gate |
+| [CameraDecision.md](Documentation/CameraDecision.md) | The camera decision (3/4 tilted top-down) and its readability budget |
+| [Sigils.md](Documentation/Sigils.md) | The five الوَسْم / Sigils and their ثمن / Prices for the slice |
 | [Plan-v2.md](Documentation/Plan-v2.md) | The approved production plan this repository executes (Arabic) |
 | [Building.md](Documentation/Building.md) | Setup, controls, Android build, troubleshooting |
 | [Verification.md](Documentation/Verification.md) | **What has been executed and verified, and what has not** |
