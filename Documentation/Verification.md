@@ -4,6 +4,76 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## سقوط البطل ونهوضه: the defeat loop (2026-10-04)
+
+The last Phase-A gameplay gap on the "playable" list was the one thing the run
+could not survive: the bearer could die, and nothing in the game noticed. A
+corpse is skipped by targeting and movement (no living target, no intent), the
+corpse cleanup skips the player (it is persistent) and `ReportDefeat` ignores
+it (it is not a hostile) — so no state, screen or rule anywhere recorded that
+the run had stopped. The only way on was to quit and load a save.
+
+The loop now runs: a lethal blow sets the session's fall state and opens the
+defeat screen; the world holds (no gate travel, no autosave) until the screen's
+one row raises the bearer — full vitals, statuses cleared, the Sigil's Price
+re-armed and the run's Soot washed off — and rebuilds the run at the Hearth's
+camp. The return is the one move that ignores region adjacency: a lost fight
+must not be able to strand a run whose other way out would be a save file.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **661 passed, 0 failed** (422 ms; 655 before this change, 6 new) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 78/78 checks** (62 before; 16 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,014,046 bytes (99 MB), sha256 `910514a8bad3faaba8f071f645d54b712e2028df440efa206f15bcfd785d8b65`, signed and verified with `apksigner` |
+
+New in code:
+
+- `Core/Simulation/Defeat.cs` — `DefeatFailure` (`NotFallen`), following the
+  salvage/forge failure-enum convention so the host can say why a rise was
+  refused.
+- `GameSession` — `IsPlayerFallen`, the `PlayerFallen` event raised exactly
+  once, and `TryRiseFromDefeat`: the transition from fallen to standing, which
+  is `Combatant.Revive` (full vitals, cleared statuses, the Sigil re-armed, the
+  Soot washed off), refused when not fallen and refused twice. The fall is
+  detected in the session's death routing by reference to the player, and it
+  does not travel the reward path: no loot, no experience, no kill credit.
+- `GameSession.ApplySave` — now revives rather than resetting vitals, so the
+  combatant's one-shot death announcement is re-armed: a bearer who fell,
+  loaded and then fell again reaches the defeat screen the second time too.
+- `scripts/GameRoot.cs` — `OnPlayerFallen` (HUD line and opening the defeat
+  screen), the frame-loop guard (a fallen bearer holds gate travel and
+  autosave), `ReturnToHearth` (rise, then `EnterRegion(camp)` deliberately
+  outside the travel rule), and the region rebuild extracted so the gate and
+  the Hearth share one code path.
+- `scripts/GameMenu.cs` — the defeat screen: `Rebuild` routes a fallen bearer
+  to `AddDefeatRows` and nothing else, `SetOpen(false)` is refused while
+  fallen, and the screen's single row runs `ReturnToHearth` and closes.
+- `Tests/Ghasaq.Core.Tests/Simulation/DefeatTests.cs` — 6 tests: the fall
+  announces once and holds, it is not a reward path, rising without falling is
+  refused, the rise restores the bearer and washes the meter, rising twice is
+  refused, and a loaded run is a standing one that can fall again.
+- `Tests/Godot/GodotSmoke.cs` — 16 new checks (`CheckDefeatLoop`) drive the
+  same loop through the main scene and the menu's own buttons: a lethal blow fells the bearer, the screen
+  opens and cannot be dismissed, every glyph draws, the row raises a
+  full-health bearer in the camp with the Soot meter at zero, the arrival spot
+  and empty camp hold, and the risen bearer can walk back out to the Wilds.
+
+Recorded runs:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #CI-RUN-PLACEHOLDER | RUN-RESULT-PLACEHOLDER |
+| `android.yml` | Android ARM64 #ANDROID-RUN-PLACEHOLDER | RUN-RESULT-PLACEHOLDER |
+
+What this pass does not cover: none of it has been played on a device. The
+screen's touch path is the menu's existing Button path, exercised in the smoke
+test as an emitted press, not a finger.
+
 ## السوابق: the rare prefixes on drops (2026-10-04)
 
 The last piece of plan §3.3 lands: a gear drop can come out carrying one rare

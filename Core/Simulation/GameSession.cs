@@ -171,6 +171,13 @@ namespace Ghasaq.Core.Simulation
         public event Action<QuestState> QuestTurnedIn;
 
         /// <summary>
+        /// Raised once when the Sigilbearer falls. The run stops here until
+        /// <see cref="TryRiseFromDefeat"/> is called: nothing else in the session
+        /// treats a fallen bearer as anything but a corpse.
+        /// </summary>
+        public event Action PlayerFallen;
+
+        /// <summary>
         /// Whether finished quests are turned in automatically, granting their
         /// rewards and offering whatever they unlock.
         ///
@@ -323,6 +330,40 @@ namespace Ghasaq.Core.Simulation
             {
                 Player.Sigil.Unequip();
             }
+        }
+
+        /// <summary>
+        /// True while the Sigilbearer lies fallen and has not risen yet.
+        ///
+        /// This is the run's stop state, not a loss state: the world holds until
+        /// the host calls <see cref="TryRiseFromDefeat"/> and takes the bearer
+        /// back to the Hearth. Death itself is announced by the combatant; this
+        /// flag exists so every layer agrees on who is standing.
+        /// </summary>
+        public bool IsPlayerFallen { get; private set; }
+
+        /// <summary>
+        /// Stands the fallen bearer back up in place: full vitals, cleared
+        /// statuses, the Sigil's Price re-armed and the run's Soot washed off
+        /// (the rules of <see cref="Combat.Combatant.Revive"/>).
+        ///
+        /// Where the bearer wakes and which region receives them is staging, so
+        /// the caller decides it; this method owns only the transition from
+        /// fallen to standing, and refuses to run twice.
+        /// </summary>
+        public bool TryRiseFromDefeat(out DefeatFailure failure)
+        {
+            if (!IsPlayerFallen)
+            {
+                failure = DefeatFailure.NotFallen;
+                return false;
+            }
+
+            failure = DefeatFailure.None;
+            IsPlayerFallen = false;
+
+            Player.Revive(Player.Position, Player.FacingDegrees);
+            return true;
         }
 
         /// <summary>Replaces the encounter, for moving to a new region. Subscriptions are rewired.</summary>
@@ -1251,8 +1292,13 @@ namespace Ghasaq.Core.Simulation
             // on the encounter is enough, because that IS the session's generator.
             Encounter.RestoreRng(save.RngState, save.RngIncrement);
 
-            Player.Vitals.ResetToFull();
-            Player.Statuses.Clear();
+            // A loaded run is a standing one: whatever the file was written
+            // after, the bearer it describes is on their feet again. Revive,
+            // rather than a bare vitals reset, so the combatant's one-shot death
+            // announcement is re-armed too - a bearer who fell, loaded and then
+            // fell again would otherwise never report the second fall.
+            Player.Revive(Player.Position, Player.FacingDegrees);
+            IsPlayerFallen = false;
 
             SyncCollectionObjectives();
             Chapters.Refresh();
@@ -1310,7 +1356,34 @@ namespace Ghasaq.Core.Simulation
 
         private void OnEncounterDeath(Combatant victim, Participant participant)
         {
+            // The bearer's fall is not the reward path: there is no loot, no
+            // experience and no quest progress in it. Compared by reference
+            // because a run has exactly one player body, however often its
+            // encounter is rebuilt.
+            if (victim != null && ReferenceEquals(victim, Player))
+            {
+                NoteFall();
+                return;
+            }
+
             ReportDefeat(victim);
+        }
+
+        /// <summary>
+        /// Records the bearer's fall and announces it exactly once. The death
+        /// announcement on the combatant is already one-shot; this guard keeps
+        /// the session event one-shot too, so a rebuilt encounter cannot
+        /// re-announce a fall that was already answered.
+        /// </summary>
+        private void NoteFall()
+        {
+            if (IsPlayerFallen)
+            {
+                return;
+            }
+
+            IsPlayerFallen = true;
+            PlayerFallen?.Invoke();
         }
     }
 }

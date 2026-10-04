@@ -196,6 +196,11 @@ namespace Ghasaq.Game
                 WorldBounds.Square(ArenaHalfExtent),
                 _occlusion);
 
+            // The fall is the run's stop state: the view answers it with the
+            // defeat screen instead of letting the world carry on around a
+            // corpse.
+            Session.PlayerFallen += OnPlayerFallen;
+
             GameContent.Populate(Session);
 
             // The run starts at the Hearth's camp, so the basic Sigil is taken up
@@ -349,6 +354,58 @@ namespace Ghasaq.Game
                 return false;
             }
 
+            EnterRegionEncounter(regionId);
+            return true;
+        }
+
+        /// <summary>
+        /// The defeat path: the fallen bearer rises and the run resumes at the
+        /// Hearth's camp (plan section 6, phase A: the loop has to survive a
+        /// lost fight).
+        ///
+        /// The return deliberately does not ask the travel rule whether the camp
+        /// is next door. Region gating exists to pace exploration, and a lost
+        /// fight must not be able to strand a run whose only other way out would
+        /// be to load a save. The rise itself - what a revival restores - is the
+        /// core's rule (<see cref="GameSession.TryRiseFromDefeat"/>); where the
+        /// bearer wakes is this game's staging.
+        /// </summary>
+        public bool ReturnToHearth(out string error)
+        {
+            error = null;
+
+            if (Session == null)
+            {
+                error = "There is no game in progress.";
+                return false;
+            }
+
+            if (!Session.TryRiseFromDefeat(out DefeatFailure failure))
+            {
+                error = DescribeDefeat(failure);
+                return false;
+            }
+
+            if (!Session.EnterRegion(GameContent.RegionCamp))
+            {
+                error = "The Hearth would not take you back.";
+                return false;
+            }
+
+            EnterRegionEncounter(GameContent.RegionCamp);
+
+            _hud?.ShowMessage("عُدت إلى الموقد — back at the Hearth");
+            return true;
+        }
+
+        public bool TravelTo(string regionId)
+        {
+            return TravelTo(regionId, out _);
+        }
+
+        /// <summary>Tears down the running region and raises the given one in its place.</summary>
+        private void EnterRegionEncounter(string regionId)
+        {
             ulong regionSeed = DeterministicRng.StableHash(regionId) ^ (ulong)Seed;
 
             var encounter = new EncounterSimulation(
@@ -370,13 +427,19 @@ namespace Ghasaq.Game
 
             Arrive(Session.Player);
 
-            _hud.ShowMessage("\u2014 " + regionId + " \u2014");
-            return true;
+            _hud?.ShowMessage("\u2014 " + regionId + " \u2014");
         }
 
-        public bool TravelTo(string regionId)
+        private static string DescribeDefeat(DefeatFailure failure)
         {
-            return TravelTo(regionId, out _);
+            switch (failure)
+            {
+                case DefeatFailure.NotFallen:
+                    return "The bearer is still standing.";
+
+                default:
+                    return "";
+            }
         }
 
         private void Arrive(Combatant player)
@@ -611,6 +674,16 @@ namespace Ghasaq.Game
 
             SyncViews(delta);
             ExpireDeadViews(delta);
+
+            // A fallen bearer holds the world: no gate travel and no autosave
+            // until the defeat screen has returned them to the Hearth. The
+            // fall may have happened inside the step above, so this is checked
+            // after it rather than on the next frame.
+            if (Session.IsPlayerFallen)
+            {
+                return;
+            }
+
             CheckGate();
             TickAutoSave(delta);
         }
@@ -754,6 +827,17 @@ namespace Ghasaq.Game
             {
                 _hud?.ShowMessage(victim.DisplayName + " falls");
             }
+        }
+
+        /// <summary>
+        /// The bearer has fallen. The world stops on the defeat screen, which is
+        /// the only surface that can start the run again; nothing else here
+        /// reacts to the fall, because there is nothing to do with a corpse.
+        /// </summary>
+        private void OnPlayerFallen()
+        {
+            _hud?.ShowMessage("سقطت — YOU FELL");
+            _menu?.OpenDefeat();
         }
 
         public override void _ExitTree()

@@ -98,6 +98,16 @@ means a missed heavy is punishable.
 - **Legible.** Damage is mitigated by armour through a diminishing-returns
   curve, and the numbers on the HUD come from the same maths the simulation uses.
 
+## Falling and rising
+
+Falling is not the end of a run. A fallen Sigilbearer wakes at the Last Ember
+Camp with their vitals restored and the Soot meter washed off (Soot.md), then
+walks back out. A lost fight costs the walk, not the character: the slice is
+about reading a fight, and a run should not lose its progress to one mistake.
+The return to the camp is the only move that ignores region adjacency — every
+other gate stays, but a lost fight can never strand a run whose way out would
+otherwise be to load a save.
+
 ## Difficulty intent
 
 Scaling down gracefully matters more than pushing a flagship. The design targets

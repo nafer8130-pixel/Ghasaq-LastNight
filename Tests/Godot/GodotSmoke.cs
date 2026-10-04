@@ -19,8 +19,9 @@ namespace Ghasaq.Tests
     /// It exercises the engine-free core through the engine: the deterministic
     /// RNG must keep its exact parity, a session must boot, a fight must actually
     /// resolve, a save must round-trip, the Sigil Price surface must be drawable
-    /// - a font with the Arabic glyphs and five authored Price lines - and the
-    /// Hearth's salvage loop must run from the menu a player actually touches.
+    /// - a font with the Arabic glyphs and five authored Price lines - the
+    /// Hearth's salvage loop must run from the menu a player actually touches,
+    /// and a fallen bearer must rise back into the run.
     /// Run with:
     ///
     ///     godot --headless --path . res://Tests/Godot/GodotSmoke.tscn
@@ -65,6 +66,7 @@ namespace Ghasaq.Tests
             CheckHearthForge();
             CheckPrefixDrops();
             CheckHearthMenu();
+            CheckDefeatLoop();
 
             if (_failures == 0)
             {
@@ -601,6 +603,100 @@ namespace Ghasaq.Tests
             }
 
             menu.SetOpen(false);
+            main.QueueFree();
+        }
+
+        // ---------------------------------------------------------- the defeat ---
+
+        /// <summary>
+        /// The fall-and-rise loop through the surface a player touches: the
+        /// bearer falls in the Wilds, the defeat screen opens and cannot be
+        /// dismissed, and its one row returns a living bearer to the Hearth's
+        /// camp with the Soot meter washed off.
+        /// </summary>
+        private void CheckDefeatLoop()
+        {
+            var scene = GD.Load<PackedScene>("res://scenes/Main.tscn");
+            Check(scene != null, "the main scene loads for the defeat check");
+
+            if (scene == null)
+            {
+                return;
+            }
+
+            Node main = scene.Instantiate();
+            AddChild(main);
+
+            var root = main as GameRoot;
+            var menu = main.GetNodeOrNull<GameMenu>("UI/GameMenu");
+
+            Check(root != null && root.Session != null && menu != null,
+                "the main scene arrives wired for the defeat check");
+
+            if (root == null || root.Session == null || menu == null)
+            {
+                main.QueueFree();
+                return;
+            }
+
+            GameSession session = root.Session;
+
+            // The run starts in the Wilds with the bearer attached to the
+            // fight; a lethal blow and the tick that sees the corpse are all it
+            // takes to fall.
+            session.Player.Soot.NotifyGhasaqUsed();
+            session.Player.Soot.NotifyGhasaqUsed();
+            Check(session.Player.Soot.Soot > 0f,
+                "the run carries a hot Soot meter before the fall");
+
+            session.Player.Vitals.ApplyDamage(session.Player.Vitals.MaxHealth * 2f, null);
+            session.Player.Tick(1f / 60f);
+
+            Check(session.IsPlayerFallen && !session.Player.IsAlive,
+                "a lethal blow fells the Sigilbearer");
+            Check(menu.IsOpen, "the defeat screen opens on the fall");
+
+            VBoxContainer rows = menu.GetNode<VBoxContainer>("Panel/VBox/Rows");
+
+            string missing = MissingGlyphs(rows);
+            Check(missing.Length == 0,
+                "every glyph of the defeat screen draws"
+                + (missing.Length == 0 ? "" : " (missing: " + missing + ")"));
+
+            Button returnRow = FindRow(rows, "RETURN TO THE HEARTH");
+            Check(returnRow != null, "the defeat screen offers the one way on");
+
+            // A phone can tap the HUD's menu button, but the defeat screen is
+            // not a pause screen: until the rise has run, it stays.
+            menu.SetOpen(false);
+            Check(menu.IsOpen, "the defeat screen cannot be dismissed before the rise");
+
+            if (returnRow != null)
+            {
+                returnRow.EmitSignal(BaseButton.SignalName.Pressed);
+
+                bool fullHealth = Math.Abs(session.Player.Vitals.Health - session.Player.Vitals.MaxHealth) < 0.001f;
+
+                Check(!session.IsPlayerFallen && session.Player.IsAlive,
+                    "pressing the row raises the bearer");
+                Check(fullHealth, "the risen bearer stands at full health");
+                Check(session.Player.Soot.Soot == 0f,
+                    "the rise washes the Soot meter off");
+                Check(session.RegionId == GameContent.RegionCamp,
+                    "the risen bearer wakes at the Hearth's camp");
+                Check(Math.Abs(session.Player.Position.Z + (root.ArenaHalfExtent - 8f)) < 0.001f,
+                    "the risen bearer stands at the camp's arrival spot");
+                Check(!menu.IsOpen, "the defeat screen closes when the run resumes");
+                Check(session.Encounter.HostilesRemaining == 0,
+                    "the camp is empty, so the bearer is not raised into a fight");
+
+                // And the run goes on: the risen bearer can walk back out.
+                bool walkedOut = root.TravelTo(GameContent.RegionWilds, out string travelError);
+                Check(walkedOut && session.Encounter.HostilesRemaining == 5,
+                    "the risen bearer can walk back out to the Wilds"
+                    + (string.IsNullOrEmpty(travelError) ? "" : " (" + travelError + ")"));
+            }
+
             main.QueueFree();
         }
 

@@ -93,6 +93,14 @@ namespace Ghasaq.Game
 
         public void SetOpen(bool open)
         {
+            // The defeat screen is the way on, not a pause screen: while the
+            // bearer lies fallen there is nothing to resume, so closing it is
+            // refused until the rise has run.
+            if (!open && Root?.Session != null && Root.Session.IsPlayerFallen)
+            {
+                return;
+            }
+
             _isOpen = open;
             Visible = open;
 
@@ -101,6 +109,12 @@ namespace Ghasaq.Game
                 _page = MenuPage.Main;
                 Rebuild();
             }
+        }
+
+        /// <summary>Opens the defeat screen. Called when the bearer falls.</summary>
+        public void OpenDefeat()
+        {
+            SetOpen(true);
         }
 
         public override void _Process(double deltaSeconds)
@@ -133,6 +147,15 @@ namespace Ghasaq.Game
         private void Rebuild()
         {
             _pendingActions.Clear();
+
+            // A fallen bearer sees one screen and nothing else: no pages, no
+            // resume. This is the loop out of a lost fight.
+            if (Root?.Session != null && Root.Session.IsPlayerFallen)
+            {
+                AddDefeatRows();
+                ApplyRows();
+                return;
+            }
 
             // Always first: a phone has no Escape key, so without a way out the
             // menu would be a trap.
@@ -195,6 +218,40 @@ namespace Ghasaq.Game
                     _rows[i].Button.Visible = false;
                 }
             }
+        }
+
+        /// <summary>
+        /// The defeat screen: the run stopped, and the Hearth is the way on.
+        /// The screen is rebuilt from the run's own state, so it cannot
+        /// disagree with the state it describes.
+        /// </summary>
+        private void AddDefeatRows()
+        {
+            AddHeader("سقطت — YOU FELL");
+            AddNote("الموقد ينتظرك — the Hearth waits.");
+
+            AddRow(
+                "عُد إلى الموقد — RETURN TO THE HEARTH",
+                ReturnToHearth,
+                new Color(0.94f, 0.76f, 0.48f));
+        }
+
+        private void ReturnToHearth()
+        {
+            if (Root == null)
+            {
+                return;
+            }
+
+            if (!Root.ReturnToHearth(out string error))
+            {
+                ShowStatus(string.IsNullOrEmpty(error) ? "The Hearth is out of reach." : error);
+                return;
+            }
+
+            // Now that the bearer stands, the screen can close; the frame loop
+            // resumes the world on the next step.
+            SetOpen(false);
         }
 
         private void GoTo(MenuPage page)
