@@ -55,6 +55,13 @@ compilation, by the rules' checks and by a 30-second error-free headless run,
 but never *seen*. Whether a 40–80 ms hold feels right is exactly the question
 the plan says only a device and a player can answer.
 
+The workflows ran on GitHub for this change, on `0fb9ed3`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #10 | **success** — naming gate, purity, the 604 tests, layout, build, smoke (27 checks) |
+| `android.yml` | Android ARM64 #10 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
 ## The Price surface: the Sigil on the HUD (2026-10-04)
 
 The remaining slice work of [Sigils.md](Sigils.md) is done: every carried ثمن /
