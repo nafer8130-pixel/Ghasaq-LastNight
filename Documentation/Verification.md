@@ -22,7 +22,7 @@ affix prefixes and the comparison view are deliberately **not** built yet —
 | Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
 | Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 50/50 checks** (33 before; 17 new) |
 | The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
-| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,001,758 bytes (99 MB), sha256 `dabba298e00efbe8c8f329335644a0db8877e1c4387d57d24ea3ae30ff2d1746`, signed and verified with `apksigner` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,001,758 bytes (99 MB), signed and verified with `apksigner`. Rebuilt on `1358482` after the glyph fix (the final build; sha256 `053011e2970ae449e96a3117904f2046f279cfc5a259d45c6783a2c1ab67b868`); the first build, on `7a16ab8`, was `dabba298e00efbe8c8f329335644a0db8877e1c4387d57d24ea3ae30ff2d1746`, same byte size |
 
 New in code:
 
@@ -76,6 +76,14 @@ Both workflows ran on GitHub for the change, on `7a16ab8`:
 | --- | --- | --- |
 | `ci.yml` | CI #15 | **success** — naming gate, purity, the 633 tests, layout, build, smoke (48 checks) |
 | `android.yml` | Android ARM64 #15 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
+After the glyph sweep caught the `→` the font lacks and the label moved to `->`,
+the fix commit ran as:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #17 | **success** on `1358482` — the same gates with smoke at 50 checks |
+| `android.yml` | Android ARM64 #17 | **success** on `1358482` — the ARM64 APK exported on a GitHub runner |
 
 ## The Soot pass: the meter and the Dimming (2026-10-04)
 
