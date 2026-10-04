@@ -55,8 +55,9 @@ namespace Ghasaq.Core.Simulation
             Items = items ?? throw new ArgumentNullException(nameof(items));
 
             Inventory = new Inventory(Items);
-            Equipment = new EquipmentLoadout(Player, Items);
             SootBank = new SootBank();
+            Forge = new ItemForge();
+            Equipment = new EquipmentLoadout(Player, Items, Forge);
             Quests = new QuestLog();
             Chapters = new ChapterTracker(Quests);
             World = new WorldGraph();
@@ -85,6 +86,12 @@ namespace Ghasaq.Core.Simulation
         /// player, which prices a single fight and is deliberately never saved.
         /// </summary>
         public SootBank SootBank { get; private set; }
+
+        /// <summary>
+        /// Forged levels, one per piece the player owns (plan section 3.3).
+        /// The loadout reads these when it applies a worn piece's modifiers.
+        /// </summary>
+        public ItemForge Forge { get; private set; }
 
         public QuestLog Quests { get; private set; }
 
@@ -748,6 +755,11 @@ namespace Ghasaq.Core.Simulation
             soot = SalvageTuning.SootFor(definition.Rarity);
             SootBank.Deposit(soot);
 
+            // The piece is destroyed, and its forged levels die with it: a fresh
+            // drop of the same id must never inherit an old investment. Nothing
+            // refunds the levels - the plan's forge is a commitment, not a rent.
+            Forge.SetLevel(itemId, 0);
+
             // The bag changed, so a collection objective may have moved - possibly
             // backwards, if the dismantled piece was one the player had to hold.
             SyncCollectionObjectives();
@@ -755,6 +767,114 @@ namespace Ghasaq.Core.Simulation
 
             failure = SalvageFailure.None;
             return true;
+        }
+
+        /// <summary>
+        /// Hammers one piece the player owns at the Hearth: the bank pays the
+        /// next level's price and the piece gains a level (plan section 3.3,
+        /// "طرق في الموقد").
+        ///
+        /// The piece may be carried or worn - a worn piece's stats are re-applied
+        /// on the spot, so the number on the HUD moves the moment the hammer
+        /// falls. Like dismantling, this belongs to the Hearth: a camp region
+        /// with no hostiles standing. The bank is charged all or nothing, so a
+        /// refusal can never take the Soot and leave the level un-bought.
+        /// </summary>
+        public bool TryForge(string itemId, out ForgeFailure failure, out int cost)
+        {
+            failure = ForgeFailure.UnknownItem;
+            cost = 0;
+
+            if (string.IsNullOrEmpty(itemId)
+                || !Items.TryGet(itemId, out ItemDefinition definition)
+                || definition == null)
+            {
+                return false;
+            }
+
+            if (definition.IsBound)
+            {
+                failure = ForgeFailure.Bound;
+                return false;
+            }
+
+            if (!definition.IsEquippable)
+            {
+                failure = ForgeFailure.NotForgeable;
+                return false;
+            }
+
+            if (!Owns(itemId))
+            {
+                failure = ForgeFailure.NotOwned;
+                return false;
+            }
+
+            if (Encounter.HostilesRemaining > 0)
+            {
+                failure = ForgeFailure.InCombat;
+                return false;
+            }
+
+            RegionDefinition here = World.Get(RegionId);
+            if (here == null || here.Kind != RegionKind.Camp)
+            {
+                failure = ForgeFailure.NotAtHearth;
+                return false;
+            }
+
+            int level = Forge.LevelOf(itemId);
+
+            if (level >= ForgeTuning.MaxLevel)
+            {
+                failure = ForgeFailure.MaxLevel;
+                return false;
+            }
+
+            // Reported even when the bank cannot pay it, so the refusal can
+            // name the price instead of just "no".
+            cost = ForgeTuning.CostForLevel(level);
+
+            if (!SootBank.TrySpend(cost))
+            {
+                failure = ForgeFailure.InsufficientSoot;
+                return false;
+            }
+
+            Forge.SetLevel(itemId, level + 1);
+
+            // A worn piece must show its new level without a swap.
+            for (int i = 0; i < EquipSlots.Count; i++)
+            {
+                EquipSlot slot = (EquipSlot)i;
+
+                if (string.Equals(Equipment.GetEquipped(slot), itemId, StringComparison.Ordinal))
+                {
+                    Equipment.RefreshModifiers(slot);
+                }
+            }
+
+            failure = ForgeFailure.None;
+            return true;
+        }
+
+        /// <summary>Whether the player carries or wears this piece.</summary>
+        private bool Owns(string itemId)
+        {
+            if (Inventory.Has(itemId))
+            {
+                return true;
+            }
+
+            for (int i = 0; i < EquipSlots.Count; i++)
+            {
+                if (string.Equals(Equipment.GetEquipped((EquipSlot)i), itemId, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // -------------------------------- consumables -----------------------------
@@ -952,6 +1072,7 @@ namespace Ghasaq.Core.Simulation
                     ? Player.Sigil.Definition.Id
                     : "",
                 SootBalance = SootBank.Balance,
+                Forge = Forge.ToStacks(),
                 RngState = Rng.State,
                 RngIncrement = Rng.Increment
             };
@@ -985,8 +1106,12 @@ namespace Ghasaq.Core.Simulation
 
             Progression.LoadFrom(save.TotalExperience, save.UnspentAttributePoints, save.StatBoosts);
             Inventory.LoadFrom(save.Inventory, out _);
-            Equipment.LoadFrom(save.Equipment);
             SootBank.LoadFrom(save.SootBalance);
+
+            // Before the loadout: the equipment applies each worn piece's
+            // modifiers, and a forged piece's bonus is part of that contribution.
+            Forge.LoadFrom(save.Forge);
+            Equipment.LoadFrom(save.Equipment);
             ApplyQuestSnapshots(save.Quests);
 
             // The carried Sigil is content the session was handed, so it is

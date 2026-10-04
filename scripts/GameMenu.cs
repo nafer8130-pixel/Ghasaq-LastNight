@@ -492,27 +492,135 @@ namespace Ghasaq.Game
         // --------------------------------- the hearth -----------------------------
 
         /// <summary>
-        /// The Hearth's bench (plan sections 3.3 and 3.7): the banked Soot and the
-        /// hammer that makes it.
+        /// The Hearth's bench (plan sections 3.3 and 3.7): the banked Soot, the
+        /// hammer that spends it on levels, and the hammer that breaks gear back
+        /// down into it.
         ///
-        /// Dismantling is a rule of the simulation, not of this screen
-        /// (<see cref="Ghasaq.Core.Simulation.GameSession.TrySalvage"/>): the menu
+        /// Both halves are rules of the simulation, not of this screen
+        /// (<see cref="Ghasaq.Core.Simulation.GameSession.TryForge"/> and
+        /// <see cref="Ghasaq.Core.Simulation.GameSession.TrySalvage"/>): the menu
         /// asks, and shows whatever refusal comes back - away from the camp or
-        /// mid-fight that is a sentence, not a hidden grey row. Only gear is
-        /// listed; the piece in each row is what its hammer would take, never the
-        /// one on the character.
+        /// mid-fight that is a sentence, not a hidden grey row.
         /// </summary>
         private void AddHearthRows()
         {
             AddNote("سُخام مدَّخر: " + Root.Session.SootBank.Balance +
-                " — تفكيك العتاد غير الملبوس إلى سُخام يبقى بين الجولات.");
-            AddHeader("المِطرقة — فكّ قطعة:");
+                " — الطَّرْق يرفع ما تملكه، والتفكيك يردّ ما لا تلبسه سُخامًا.");
+
+            AddForgeRows();
+            AddSalvageRows();
+
+            AddRow(
+                "الوَسْم — SIGIL   (التبديل في الموقد)",
+                () => GoTo(MenuPage.Sigils),
+                new Color(0.94f, 0.82f, 0.55f));
+        }
+
+        /// <summary>
+        /// One row per piece the hammer can raise: what the next level adds,
+        /// what it costs, and - for a worn piece - that it is worn, because
+        /// that is the piece whose stat will move on the spot.
+        /// </summary>
+        private void AddForgeRows()
+        {
+            AddHeader("المِطرقة — طَرْق (ترقية):");
+
+            int added = 0;
+
+            // Worn pieces first: the bag second, because gear waiting in the bag
+            // is a plan and gear on the body is the plan in action.
+            for (int i = 0; i < EquipSlots.All.Length && added < 4; i++)
+            {
+                string worn = Root.Session.Equipment.GetEquipped(EquipSlots.All[i]);
+
+                if (!string.IsNullOrEmpty(worn))
+                {
+                    AddForgeRow(worn, true);
+                    added++;
+                }
+            }
+
+            foreach (KeyValuePair<string, int> entry in Root.Session.Inventory.Entries)
+            {
+                if (added >= 4)
+                {
+                    AddNote("...وبقيت قطع أخرى في الحقيبة.");
+                    break;
+                }
+
+                if (!Root.Session.Items.TryGet(entry.Key, out ItemDefinition definition) ||
+                    definition == null || !definition.IsEquippable || definition.IsBound)
+                {
+                    continue;
+                }
+
+                AddForgeRow(entry.Key, false);
+                added++;
+            }
+
+            if (added == 0)
+            {
+                AddNote("لا عتاد بعد — ما تقتنيه يُطرَق هنا.");
+            }
+        }
+
+        private void AddForgeRow(string id, bool worn)
+        {
+            ItemDefinition definition = Root.Session.Items.Get(id);
+
+            if (definition == null)
+            {
+                return;
+            }
+
+            string name = definition.DisplayName;
+            int level = Root.Session.Forge.LevelOf(id);
+
+            if (level >= ForgeTuning.MaxLevel)
+            {
+                AddRow("طَرْق  " + name + (worn ? "  (ملبوسة)" : "") +
+                    "   ل." + level + "   (الأقصى)", null, new Color(0.6f, 0.6f, 0.64f));
+                return;
+            }
+
+            int cost = ForgeTuning.CostForLevel(level);
+            StatId stat = ForgeTuning.BonusStat(definition.Kind);
+            float bonus = ForgeTuning.BonusPerLevel(definition.Kind);
+
+            string label = "طَرْق  " + name + (worn ? "  (ملبوسة)" : "") +
+                "   ل." + level + " -> ل." + (level + 1) +
+                "   +" + bonus.ToString("0.#") + " " + StatIds.Name(stat) +
+                "   —   " + cost + " سُخام";
+
+            string capturedId = id;
+
+            AddRow(label, () =>
+            {
+                if (Root.Session.TryForge(capturedId, out ForgeFailure failure, out _))
+                {
+                    ShowStatus("طُرق " + name + " إلى مستوى " +
+                        Root.Session.Forge.LevelOf(capturedId) +
+                        ". الرصيد: " + Root.Session.SootBank.Balance + ".");
+                }
+                else
+                {
+                    ShowStatus(DescribeForgeFailure(failure));
+                }
+
+                Rebuild();
+            }, new Color(0.9f, 0.82f, 0.6f));
+        }
+
+        /// <summary>One row per piece the hammer could break down, with its yield.</summary>
+        private void AddSalvageRows()
+        {
+            AddHeader("المِطرقة — فكّ (تفكيك):");
 
             int added = 0;
 
             foreach (KeyValuePair<string, int> entry in Root.Session.Inventory.Entries)
             {
-                if (added >= 6)
+                if (added >= 4)
                 {
                     AddNote("...وبقيت قطع أخرى في الحقيبة.");
                     break;
@@ -553,11 +661,6 @@ namespace Ghasaq.Game
             {
                 AddNote("لا عتاد غير ملبوس في الحقيبة — ما تجده في الميدان يُفكّ هنا.");
             }
-
-            AddRow(
-                "الوَسْم — SIGIL   (التبديل في الموقد)",
-                () => GoTo(MenuPage.Sigils),
-                new Color(0.94f, 0.82f, 0.55f));
         }
 
         private static string DescribeSalvageFailure(SalvageFailure failure)
@@ -571,6 +674,22 @@ namespace Ghasaq.Game
                 case SalvageFailure.NotAtHearth: return "المِطرقة في الموقد — مخيّم الجمرة الأخيرة، لا هاهنا.";
                 case SalvageFailure.InCombat: return "لا تفكيك وسط القتال — عد إلى الموقد.";
                 default: return "تعذّر التفكيك.";
+            }
+        }
+
+        private static string DescribeForgeFailure(ForgeFailure failure)
+        {
+            switch (failure)
+            {
+                case ForgeFailure.UnknownItem: return "ليست قطعة تعرفها هذه النسخة.";
+                case ForgeFailure.NotForgeable: return "ليست قطعة عتاد تُطرَق.";
+                case ForgeFailure.Bound: return "مربوطة بالحكاية — لا تُطرَق.";
+                case ForgeFailure.NotOwned: return "لا تملكها — المِطرقة تعمل على ما معك.";
+                case ForgeFailure.NotAtHearth: return "المِطرقة في الموقد — مخيّم الجمرة الأخيرة، لا هاهنا.";
+                case ForgeFailure.InCombat: return "لا طَرْق وسط القتال — عد إلى الموقد.";
+                case ForgeFailure.InsufficientSoot: return "لا سُخام كافٍ — فكّك ما لا تلبسه.";
+                case ForgeFailure.MaxLevel: return "بلغت القطعة أقصى الطَّرْق.";
+                default: return "تعذّر الطَّرْق.";
             }
         }
 
@@ -716,40 +835,50 @@ namespace Ghasaq.Game
             }
 
             StatModifier[] modifiers = definition.Modifiers;
+            string text = "";
 
-            if (modifiers == null || modifiers.Length == 0)
+            if (modifiers != null && modifiers.Length > 0)
             {
-                return "";
-            }
+                var builder = new StringBuilder("  (");
 
-            var text = new StringBuilder("  (");
-
-            for (int i = 0; i < modifiers.Length; i++)
-            {
-                if (i > 0)
+                for (int i = 0; i < modifiers.Length; i++)
                 {
-                    text.Append(", ");
+                    if (i > 0)
+                    {
+                        builder.Append(", ");
+                    }
+
+                    StatModifier modifier = modifiers[i];
+
+                    switch (modifier.Op)
+                    {
+                        case ModifierOp.Flat:
+                            builder.Append('+').Append(Mathf.RoundToInt(modifier.Value));
+                            break;
+                        case ModifierOp.PercentAdditive:
+                            builder.Append('+').Append(Mathf.RoundToInt(modifier.Value)).Append('%');
+                            break;
+                        case ModifierOp.PercentMultiplicative:
+                            builder.Append('x').Append(modifier.Value.ToString("0.##"));
+                            break;
+                    }
+
+                    builder.Append(' ').Append(StatIds.Name(modifier.Stat));
                 }
 
-                StatModifier modifier = modifiers[i];
-
-                switch (modifier.Op)
-                {
-                    case ModifierOp.Flat:
-                        text.Append('+').Append(Mathf.RoundToInt(modifier.Value));
-                        break;
-                    case ModifierOp.PercentAdditive:
-                        text.Append('+').Append(Mathf.RoundToInt(modifier.Value)).Append('%');
-                        break;
-                    case ModifierOp.PercentMultiplicative:
-                        text.Append('x').Append(modifier.Value.ToString("0.##"));
-                        break;
-                }
-
-                text.Append(' ').Append(StatIds.Name(modifier.Stat));
+                text = builder.Append(')').ToString();
             }
 
-            return text.Append(')').ToString();
+            // The forged level is extra strength on top of the piece's own
+            // lines, so it is named outside the parentheses.
+            int level = Root.Session.Forge.LevelOf(itemId);
+
+            if (level > 0)
+            {
+                text += "  [طَرْق " + level + "]";
+            }
+
+            return text;
         }
 
         private static string DescribeEffects(ItemDefinition definition)

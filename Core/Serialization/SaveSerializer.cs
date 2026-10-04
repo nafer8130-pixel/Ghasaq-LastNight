@@ -66,6 +66,7 @@ namespace Ghasaq.Core.Serialization
             data.Set("statBoosts", FloatsToJson(save.StatBoosts));
             data.Set("inventory", StacksToJson(save.Inventory));
             data.Set("equipment", StacksToJson(save.Equipment));
+            data.Set("forge", StacksToJson(save.Forge));
             data.Set("quests", QuestsToJson(save.Quests));
             data.Set("discoveredRegions", StringsToJson(save.DiscoveredRegions));
             data.Set("sigil", save.EquippedSigilId ?? "");
@@ -142,6 +143,10 @@ namespace Ghasaq.Core.Serialization
 
             save.Inventory = StacksFromJson(data.Get("inventory"));
             save.Equipment = StacksFromJson(data.Get("equipment"));
+
+            // Added after the first saves shipped: an old file simply has no
+            // forged levels and loads with an empty ledger.
+            save.Forge = StacksFromJson(data.Get("forge"));
             save.Quests = QuestsFromJson(data.Get("quests"));
             save.DiscoveredRegions = data.Get("discoveredRegions")?.AsStringList() ?? new List<string>();
             save.EquippedSigilId = data.Get("sigil")?.AsString("") ?? "";

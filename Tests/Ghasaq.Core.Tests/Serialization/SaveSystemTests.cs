@@ -30,6 +30,7 @@ namespace Ghasaq.Core.Tests.Serialization
                     new ItemStack("bone-shard", 4)
                 },
                 Equipment = new List<ItemStack> { new ItemStack("ghasaq-edge", 1) },
+                Forge = new List<ItemStack> { new ItemStack("ghasaq-edge", 3) },
                 Quests = new List<QuestSnapshot>
                 {
                     new QuestSnapshot("q-hollow", QuestStatus.Active, new[] { 2, 0 }),
@@ -108,6 +109,10 @@ namespace Ghasaq.Core.Tests.Serialization
             Assert.Equal(12, restored.Inventory[0].Quantity);
             Assert.Single(restored.Equipment);
             Assert.Equal("ghasaq-edge", restored.Equipment[0].ItemId);
+
+            Assert.Single(restored.Forge);
+            Assert.Equal("ghasaq-edge", restored.Forge[0].ItemId);
+            Assert.Equal(3, restored.Forge[0].Quantity);
         }
 
         [Fact]
@@ -197,6 +202,7 @@ namespace Ghasaq.Core.Tests.Serialization
             Assert.Equal("Wanderer", restored.ProfileName);
             Assert.Equal(0, restored.TotalExperience);
             Assert.Equal(0, restored.SootBalance);
+            Assert.Empty(restored.Forge);
             Assert.Empty(restored.Inventory);
             Assert.Empty(restored.Quests);
             Assert.Equal(Float3.Zero, restored.Position);

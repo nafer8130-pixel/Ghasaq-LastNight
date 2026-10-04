@@ -4,6 +4,68 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## The Forge: the Soot sink (2026-10-04)
+
+The second half of plan §3.3 lands: the Hearth's hammer spends the banked
+السُّخام / Soot on levels, a worn piece shows its new strength on the spot, and
+the ledger of levels rides every save. The Hearth page now lists, per owned
+piece, the level it stands at, the bonus the next level adds and its price,
+above the dismantling rows. سوابق / prefixes and the comparison view remain
+deliberately unbuilt — [Reliquary.md](Reliquary.md) states what is and is not.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **646 passed, 0 failed** (325 ms; 633 before this change, 13 new) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 58/58 checks** (50 before; 8 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 104,005,854 bytes (99 MB), sha256 `1544ffac279f3348986836f0128c9fd10ad560831368fd60f10b80d034848839`, signed and verified with `apksigner` |
+
+New in code:
+
+- `Core/Items/Forge.cs` — `ForgeTuning` (costs 12 / 24 / 40 / 60 / 90, `MaxLevel` 5,
+  and by kind: +6 AttackPower per level for a weapon, +8 Armor for armour,
+  +5 GhasaqPower for a relic), the nine `ForgeFailure` reasons, and `ItemForge`
+  — the ledger, id to level, clamped into `0..5` on load as well.
+- `SootBank.TrySpend` — all or nothing: the balance moves only when it covers
+  the whole price.
+- `EquipmentLoadout` — takes the ledger, adds the level bonus inside
+  `ApplyModifiers` under the slot's own token (one unequip removes the piece's
+  lines and its levels together), and `RefreshModifiers` re-applies a worn
+  piece's contribution, so forging what you wear moves the stat on the spot.
+- `GameSession.TryForge` — the rule: bound / not gear / not owned / in combat /
+  not at the Hearth / already max / the bank cannot pay (the refusal names the
+  price). And `TrySalvage` now clears the destroyed piece's levels, so a fresh
+  drop of the same id starts at level zero and full price.
+- `SaveGame.Forge` + `SaveSerializer` (JSON key `forge`) — one entry per forged
+  piece, the level in `Quantity`; the ledger loads **before** the loadout so
+  worn bonuses come back, and an old save without the field loads empty.
+- `scripts/GameMenu.cs` — the Hearth page's forging section (worn pieces first,
+  four rows) above the dismantling section; `Describe` appends `[طَرْق N]` to a
+  piece that has levels.
+- Thirteen core tests (`ForgeTests` plus `TrySpend` in `SootBankTests`) and three
+  assertions in `SaveSystemTests` — the costs and bonuses, the loop, the stat
+  re-application on worn gear, every refusal, clearing on dismantle, and the
+  save round-trip with the worn bonus restored.
+- Eight smoke checks — five for the core forge (refused away from the camp,
+  12 Soot buys level 1, 24 is refused with 3 in the bank, the save round-trips
+  the ledger) and three driving the menu's forging row through its own button
+  (offered at 12 Soot, spends the balance to 3, redraws).
+
+**Not measured:** the forging rows are drawing, like the rest of the page —
+never *seen*, exercised only by the smoke test's presses and glyph sweeps.
+Whether a level's price feels worth its bonus is exactly the feel gate in
+Reliquary.md.
+
+One more note for the file: the menu check's first version searched rows by item
+name alone, and the Hearth page now names the same piece twice (a forging row
+and a dismantling row). The check grabbed the wrong row and failed loudly — the
+search now requires the verb as well, which is what "check the interface the
+player touches" is supposed to do.
+
 ## The Reliquary's dismantling and the Hearth page (2026-10-04)
 
 The first half of plan §3.3 lands: gear held in the bag breaks down at the

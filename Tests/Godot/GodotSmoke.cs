@@ -62,6 +62,7 @@ namespace Ghasaq.Tests
             CheckBattleFeedback();
             CheckSootSurface();
             CheckHearthSalvage();
+            CheckHearthForge();
             CheckHearthMenu();
 
             if (_failures == 0)
@@ -365,6 +366,50 @@ namespace Ghasaq.Tests
                 "the Soot balance survives a save round-trip");
         }
 
+        /// <summary>
+        /// The Hearth's forging half (plan section 3.3): the hammer spends the
+        /// bank on levels, refuses what the bank cannot pay, and the levels ride
+        /// a save.
+        /// </summary>
+        private void CheckHearthForge()
+        {
+            GameSession session = BuildSession();
+            session.GrantItem(GameContent.ItemSigilbearersBlade, 1);
+
+            // The session boots in the Grey Wilds, away from the Hearth's camp.
+            Check(!session.TryForge(GameContent.ItemSigilbearersBlade, out ForgeFailure away, out _)
+                && away == ForgeFailure.NotAtHearth,
+                "forging is refused away from the Hearth's camp");
+
+            session.EnterRegion(GameContent.RegionCamp);
+            session.SootBank.Deposit(15);
+
+            Check(session.TryForge(GameContent.ItemSigilbearersBlade, out ForgeFailure failure, out int cost)
+                && failure == ForgeFailure.None
+                && cost == 12
+                && session.Forge.LevelOf(GameContent.ItemSigilbearersBlade) == 1
+                && session.SootBank.Balance == 3,
+                "the hammer takes 12 Soot and sets the piece to level 1");
+
+            Check(!session.TryForge(GameContent.ItemSigilbearersBlade, out ForgeFailure poor, out int next)
+                && poor == ForgeFailure.InsufficientSoot
+                && next == 24
+                && session.Forge.LevelOf(GameContent.ItemSigilbearersBlade) == 1
+                && session.SootBank.Balance == 3,
+                "the next level costs 24 and is refused with 3 in the bank");
+
+            string json = SaveSerializer.Serialize(session.CreateSave());
+            Check(SaveSerializer.TryDeserialize(json, out SaveGame loaded, out string error),
+                "a save carrying forge levels deserialises" + (error == null ? "" : " (" + error + ")"));
+
+            GameSession restored = BuildSession();
+            restored.ApplySave(loaded);
+
+            Check(restored.Forge.LevelOf(GameContent.ItemSigilbearersBlade) == 1
+                && restored.SootBank.Balance == 3,
+                "the forge level and the bank survive a save round-trip");
+        }
+
         // ------------------------------------------------------ the hearth (menu) ---
 
         /// <summary>
@@ -406,6 +451,7 @@ namespace Ghasaq.Tests
                 "the run can travel back to the Hearth's camp"
                 + (string.IsNullOrEmpty(travelError) ? "" : " (" + travelError + ")"));
             root.Session.GrantItem(GameContent.ItemEmberRelic, 1);
+            root.Session.GrantItem(GameContent.ItemSigilbearersBlade, 1);
 
             menu.SetOpen(true);
 
@@ -429,7 +475,7 @@ namespace Ghasaq.Tests
                     "every glyph of the Hearth page's rows draws"
                     + (missing.Length == 0 ? "" : " (missing: " + missing + ")"));
 
-                Button salvageRow = FindRow(rows, "Ember Relic");
+                Button salvageRow = FindRow(rows, "فكّ", "Ember Relic");
                 Check(salvageRow != null && salvageRow.Text.Contains("15 سُخام"),
                     "the Hearth page offers the Relic for 15 Soot");
 
@@ -442,18 +488,41 @@ namespace Ghasaq.Tests
                     Check(FindRow(rows, "سُخام مدَّخر: 15") != null,
                         "the Hearth page redraws with the new balance");
                 }
+
+                Button forgeRow = FindRow(rows, "طَرْق", "Sigilbearer's Blade");
+                Check(forgeRow != null && forgeRow.Text.Contains("12 سُخام"),
+                    "the Hearth page offers the Blade's first level for 12 Soot");
+
+                if (forgeRow != null)
+                {
+                    forgeRow.EmitSignal(BaseButton.SignalName.Pressed);
+
+                    Check(root.Session.Forge.LevelOf(GameContent.ItemSigilbearersBlade) == 1
+                        && root.Session.SootBank.Balance == 3,
+                        "pressing the row spends the Soot and raises the level");
+                    Check(FindRow(rows, "سُخام مدَّخر: 3") != null,
+                        "the Hearth page redraws with the spent balance");
+                }
             }
 
             menu.SetOpen(false);
             main.QueueFree();
         }
 
-        /// <summary>The visible row whose label contains a fragment, or null.</summary>
-        private static Button FindRow(VBoxContainer rows, string fragment)
+        /// <summary>
+        /// The visible row whose label contains a fragment (and, when given, a
+        /// second one too), or null. The second fragment disambiguates pages
+        /// that name the same piece twice, such as the Hearth's forge and
+        /// salvage rows.
+        /// </summary>
+        private static Button FindRow(VBoxContainer rows, string fragment, string alsoContains = null)
         {
             for (int i = 0; i < rows.GetChildCount(); i++)
             {
-                if (rows.GetChild(i) is Button button && button.Visible && button.Text.Contains(fragment))
+                if (rows.GetChild(i) is Button button
+                    && button.Visible
+                    && button.Text.Contains(fragment)
+                    && (alsoContains == null || button.Text.Contains(alsoContains)))
                 {
                     return button;
                 }

@@ -43,6 +43,23 @@ namespace Ghasaq.Core.Tests.Items
         }
 
         [Fact]
+        public void TrySpend_IsAllOrNothing()
+        {
+            var bank = new SootBank();
+            bank.LoadFrom(15);
+
+            Assert.False(bank.TrySpend(16));
+            Assert.Equal(15, bank.Balance);
+
+            Assert.False(bank.TrySpend(0));
+            Assert.False(bank.TrySpend(-5));
+
+            Assert.True(bank.TrySpend(15));
+            Assert.Equal(0, bank.Balance);
+            Assert.False(bank.TrySpend(1));
+        }
+
+        [Fact]
         public void LoadFrom_ClampsANegativeValue()
         {
             var bank = new SootBank();

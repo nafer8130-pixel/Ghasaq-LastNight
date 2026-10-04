@@ -66,14 +66,16 @@ namespace Ghasaq.Core.Items
     {
         private readonly Combatant _owner;
         private readonly ItemDatabase _database;
+        private readonly ItemForge _forge;
         private readonly string[] _equipped;
         private readonly object[] _tokens;
         private readonly bool[] _unlocked;
 
-        public EquipmentLoadout(Combatant owner, ItemDatabase database)
+        public EquipmentLoadout(Combatant owner, ItemDatabase database, ItemForge forge = null)
         {
             _owner = owner ?? throw new ArgumentNullException(nameof(owner));
             _database = database ?? throw new ArgumentNullException(nameof(database));
+            _forge = forge;
 
             _equipped = new string[EquipSlots.Count];
             _tokens = new object[EquipSlots.Count];
@@ -244,6 +246,28 @@ namespace Ghasaq.Core.Items
             }
         }
 
+        /// <summary>
+        /// Re-applies the worn piece's contribution, for when it changed
+        /// underneath the loadout: the forge adds a level to a worn piece and
+        /// the stat must move with it, without a take-off-and-wear detour.
+        /// </summary>
+        public void RefreshModifiers(EquipSlot slot)
+        {
+            int index = (int)slot;
+
+            if (string.IsNullOrEmpty(_equipped[index]))
+            {
+                return;
+            }
+
+            RemoveModifiers(slot);
+
+            if (_database.TryGet(_equipped[index], out ItemDefinition item) && item != null)
+            {
+                ApplyModifiers(slot, item);
+            }
+        }
+
         /// <summary>Snapshot for saving.</summary>
         public List<ItemStack> ToStacks()
         {
@@ -262,16 +286,29 @@ namespace Ghasaq.Core.Items
 
         private void ApplyModifiers(EquipSlot slot, ItemDefinition item)
         {
+            object token = _tokens[(int)slot];
+
             StatModifier[] modifiers = item.Modifiers;
-            if (modifiers == null || modifiers.Length == 0)
+            if (modifiers != null)
             {
-                return;
+                for (int i = 0; i < modifiers.Length; i++)
+                {
+                    _owner.Stats.AddModifier(modifiers[i].WithSource(token));
+                }
             }
 
-            object token = _tokens[(int)slot];
-            for (int i = 0; i < modifiers.Length; i++)
+            // The forged levels ride the same token as the piece's own
+            // modifiers, so one unequip removes the whole contribution and
+            // cannot leave a bonus behind.
+            if (_forge != null)
             {
-                _owner.Stats.AddModifier(modifiers[i].WithSource(token));
+                float bonus = ForgeTuning.BonusAt(item, _forge.LevelOf(item.Id));
+
+                if (bonus > 0f)
+                {
+                    _owner.Stats.AddModifier(
+                        StatModifier.Flat(ForgeTuning.BonusStat(item.Kind), bonus, token));
+                }
             }
         }
 

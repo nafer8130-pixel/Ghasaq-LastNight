@@ -41,6 +41,22 @@ namespace Ghasaq.Core.Items
             return accepted;
         }
 
+        /// <summary>
+        /// Pays a price all or nothing: the balance moves only when it can
+        /// cover the whole cost, so a refused purchase never leaves the bank
+        /// short and the piece un-bought.
+        /// </summary>
+        public bool TrySpend(int amount)
+        {
+            if (amount <= 0 || Balance < amount)
+            {
+                return false;
+            }
+
+            Balance -= amount;
+            return true;
+        }
+
         /// <summary>Restores a saved balance. A hand-edited negative value clamps to zero.</summary>
         public void LoadFrom(int balance)
         {

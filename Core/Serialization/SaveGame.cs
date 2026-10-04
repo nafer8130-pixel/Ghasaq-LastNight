@@ -79,6 +79,14 @@ namespace Ghasaq.Core.Serialization
 
         public List<ItemStack> Equipment = new List<ItemStack>();
 
+        /// <summary>
+        /// Forged levels, one entry per piece with a level above zero, the level
+        /// stored in <see cref="ItemStack.Quantity"/>. Keyed by item id because
+        /// the bag holds at most one copy of any id (one slot per type, gear at
+        /// MaxStack 1), so under this build's inventory an id IS a copy.
+        /// </summary>
+        public List<ItemStack> Forge = new List<ItemStack>();
+
         public List<QuestSnapshot> Quests = new List<QuestSnapshot>();
 
         /// <summary>Regions the player has discovered, for the map.</summary>
@@ -134,6 +142,7 @@ namespace Ghasaq.Core.Serialization
                 RngIncrement = RngIncrement,
                 Inventory = new List<ItemStack>(Inventory),
                 Equipment = new List<ItemStack>(Equipment),
+                Forge = new List<ItemStack>(Forge),
                 DiscoveredRegions = new List<string>(DiscoveredRegions),
                 EquippedSigilId = EquippedSigilId,
                 Quests = new List<QuestSnapshot>(Quests.Count)
