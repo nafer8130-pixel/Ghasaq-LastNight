@@ -34,9 +34,9 @@ Unity folders (`Assets/`, `Packages/`, `ProjectSettings/`) are gone too.
 
 | Area | State |
 | --- | --- |
-| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, items, quests, world, saves | **Done — 604 tests passing** |
-| Godot game layer (`scripts/`, `scenes/`) — arena, player, enemies, camera, input, HUD (Sigil Price surface), menu (Hearth), saves | **Done — builds clean, runs headless** |
-| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface, the hit-feedback rules |
+| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, Soot and the Dimming, items, quests, world, saves | **Done — 619 tests passing** |
+| Godot game layer (`scripts/`, `scenes/`) — arena, player, enemies, camera, input, HUD (Sigil Price surface and Soot meter), menu (Hearth), saves | **Done — builds clean, runs headless** |
+| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface, the hit-feedback rules, the Soot meter and its surface |
 | Android ARM64 APK | **Produced and validated locally** — see below |
 | GitHub Actions CI | `ci.yml` runs the Godot gates; `android.yml` exports the ARM64 APK |
 
@@ -46,18 +46,20 @@ The following are verified **by execution**, on a machine with no game engine
 installed beyond Godot itself:
 
 - **The game rules:** `bash Tools/test-core.sh` compiles the real core sources and
-  runs **604 tests**.
+  runs **619 tests**.
 - **The Godot assembly:** `bash Tools/test-godot.sh` builds `Ghasaq.csproj`,
   imports the project, and runs a headless smoke test **inside Godot** that proves
   the deterministic RNG parity, boots a session, resolves a real fight,
   round-trips a save, proves the Sigil Price surface is drawable (the UI font
-  covers Arabic and Latin, and every authored Price line fits the HUD card), and
+  covers Arabic and Latin, and every authored Price line fits the HUD card),
   checks the hit-feedback arithmetic (hit-stop inside its 40–80 ms band, the
-  telegraph ramp).
+  telegraph ramp), and holds the Soot meter to its draft numbers (the third burn
+  lands exactly on the Dimming's threshold, a full meter sharpens both edges,
+  half a minute of rest clears it, and every glyph of the bar's label draws).
 - **The main scene:** running `scenes/Main.tscn` headless assembles the game —
-  `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern'`.
+  `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0`.
 - **A real APK:** `bash Tools/build-android.sh` produced
-  `build/android/ghasaq.apk` (103,993,566 bytes / 99 MB; final run with the juice
+  `build/android/ghasaq.apk` (103,997,662 bytes / 99 MB; final run with the Soot
   pass in `Documentation/Verification.md`) locally, containing
   `lib/arm64-v8a/libgodot_android.so`, `assets/.godot/mono/publish/arm64/Ghasaq.dll`,
   `Ghasaq.Core.dll` and both `.fontdata` files the Arabic Sigil lines draw with,
@@ -68,16 +70,17 @@ installed beyond Godot itself:
 
 What is **not** verified: the APK has not been installed on a physical device, and
 touch controls, frame rate and the camera on real hardware are untested — that
-needs a phone. Both workflows have now run on GitHub and passed: `ci.yml` and the
-Android ARM64 export both succeeded on the rename commit (`f6832c2`).
-`Documentation/Verification.md` states exactly what was run and what was not.
+needs a phone. Both workflows have run green on GitHub for every recorded
+change; the runs of the latest change are listed in
+`Documentation/Verification.md`, which states exactly what was run and what was
+not.
 
 ### Commands to check what can be checked
 
 ```bash
 bash Tools/check-core-purity.sh   # the core must stay engine-free (Godot/Unity/Unreal)
 bash Tools/check-naming.sh        # no retired identifier from the earlier identity remains
-bash Tools/test-core.sh           # purity gate + 604 core tests
+bash Tools/test-core.sh           # purity gate + 619 core tests
 bash Tools/check-godot-project.sh # the Godot project layout is complete and engine-clean
 bash Tools/test-godot.sh          # build the C# assembly + headless smoke test
 bash Tools/build-android.sh       # export the Android ARM64 APK (needs Godot + Android SDK)
@@ -98,7 +101,7 @@ scripts/                 the Godot game layer (C#): views, camera, input, HUD, m
 assets/fonts/            the bundled Noto fonts (Latin + Arabic) the UI text draws with
 Core/                    the engine-free C# game rules (the source of truth)
 Tests/
-  Ghasaq.Core.Tests/  xUnit suite for the core (604 tests)
+  Ghasaq.Core.Tests/  xUnit suite for the core (619 tests)
   Ghasaq.Core.Build/  compiles Core/ as a portable netstandard2.1 library
   Godot/                   the headless Godot smoke test
 Tools/                   command-line verification and build scripts
@@ -148,6 +151,7 @@ The core test suite needs no engine. Godot needs no Android SDK until you export
 | [Naming.md](Documentation/Naming.md) | The naming contract: identity, the system dictionary, the retired words, the gate |
 | [CameraDecision.md](Documentation/CameraDecision.md) | The camera decision (3/4 tilted top-down) and its readability budget |
 | [Sigils.md](Documentation/Sigils.md) | The five الوَسْم / Sigils and their ثمن / Prices for the slice |
+| [Soot.md](Documentation/Soot.md) | السُّخام / Soot and العَتْمة / Dimming: the meter, the threshold, and the two edges |
 | [assets/fonts/README.md](assets/fonts/README.md) | The bundled UI fonts: why they are vendored, provenance, license |
 | [Plan-v2.md](Documentation/Plan-v2.md) | The approved production plan this repository executes (Arabic) |
 | [Building.md](Documentation/Building.md) | Setup, controls, Android build, troubleshooting |

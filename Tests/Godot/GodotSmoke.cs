@@ -58,6 +58,7 @@ namespace Ghasaq.Tests
             CheckSaveRoundTrip();
             CheckSigilSurface();
             CheckBattleFeedback();
+            CheckSootSurface();
 
             if (_failures == 0)
             {
@@ -305,6 +306,64 @@ namespace Ghasaq.Tests
             Check(startOfWindup == 0f && midWindup > 0f && midWindup < 1f && endOfWindup == 1f
                 && BattleFeedback.TelegraphStrength(CastPhase.Ready, 0.5f, 0.5f) == 0f,
                 "the telegraph ramps from 0 to 1 across the wind-up and is silent when ready");
+        }
+
+        // -------------------------------------------------------------- soot ---
+
+        /// <summary>
+        /// The Soot surface (plan section 3.6): the meter's draft behaviour,
+        /// the kit it follows, and the one engine-side fact that can silently
+        /// break the readout - the UI font must carry every glyph the bar
+        /// draws, because Godot's built-in font carries no Arabic at all.
+        /// </summary>
+        private void CheckSootSurface()
+        {
+            // The meter only moves in play if something in the kit burns.
+            bool ghasaqInKit = GameContent.BuildPlayerAbilities().Exists(ability => ability.UsesGhasaqPower);
+            Check(ghasaqInKit, "the player kit carries a Ghasaq-keyed ability for the Soot meter to follow");
+
+            var meter = new SootMeter();
+            for (int i = 0; i < 3; i++)
+            {
+                meter.NotifyGhasaqUsed();
+            }
+
+            Check(meter.IsDimming && meter.DimmingFraction == 0f,
+                "the third burn lands exactly on the Dimming's threshold, still neutral");
+
+            for (int i = 0; i < 2; i++)
+            {
+                meter.NotifyGhasaqUsed();
+            }
+
+            Check(meter.Fraction == 1f && meter.DamageDealtMultiplier > 1.2f && meter.DamageTakenMultiplier > 1.3f,
+                "a full meter sharpens both edges of every blow");
+
+            meter.Tick(30f);
+
+            Check(!meter.IsDimming && meter.Soot == SootTuning.Max - (SootTuning.DecayPerSecond * 30f),
+                "half a minute of rest carries the meter back below the line");
+
+            // The bar's label, at full and dimmed, measured with the font and
+            // size the HUD draws with. It must fit the bar, and every glyph of
+            // it must exist in the font - an Arabic label drawn with a Latin
+            // font is nothing at all.
+            Font font = ThemeDB.FallbackFont;
+            string label = "السُّخام: 100 / 100    عَتْمة";
+
+            bool glyphs = font != null;
+            for (int i = 0; glyphs && i < label.Length; i++)
+            {
+                glyphs = font.HasChar(label[i]);
+            }
+
+            Check(glyphs, "the UI font covers every glyph of the Soot bar's label");
+
+            float labelWidth = font.GetStringSize(label, HorizontalAlignment.Left, -1, Hud.BarLabelSize).X;
+            Check(labelWidth <= Hud.BarWidth * 0.8f,
+                "the Soot bar's longest label fits the bar it is drawn on");
+
+            GD.Print($"  info - soot label width {labelWidth:0.#} px against {Hud.BarWidth * 0.8f:0.#} px");
         }
     }
 }

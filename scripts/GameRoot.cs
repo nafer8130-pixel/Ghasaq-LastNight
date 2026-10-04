@@ -154,7 +154,7 @@ namespace Ghasaq.Game
             GD.Print($"Ghasaq ready: region '{Session.RegionId}', " +
                 $"{Session.Encounter.HostilesRemaining} hostiles, " +
                 $"{Session.Quests.All.Count} quests, level {Session.Progression.Level}, " +
-                $"sigil '{carriedId}'");
+                $"sigil '{carriedId}', soot {(Session.Player.Soot != null ? Session.Player.Soot.Soot : 0f):0}");
         }
 
         /// <summary>Builds a complete playable session. Safe to call again to restart.</summary>
@@ -177,6 +177,13 @@ namespace Ghasaq.Game
         {
             var items = GameContent.BuildItems();
             Combatant player = GameContent.CreatePlayer();
+
+            // The Soot meter is a run state, not a saved one: it lives on the
+            // player the run was built around and dies with that run. It hangs
+            // off the body here rather than in CreatePlayer so the content
+            // module stays a factory, and the HUD can always read it from the
+            // player it draws (plan section 3.6).
+            player.Soot = new SootMeter();
 
             _occlusion = new OcclusionProvider(this);
 

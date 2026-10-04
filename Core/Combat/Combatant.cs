@@ -135,6 +135,33 @@ namespace Ghasaq.Core.Combat
         /// </summary>
         public bool IsBoss { get; set; }
 
+        /// <summary>
+        /// This combatant's السُّخام / Soot meter, or null. Only the player's run
+        /// carries one, the same way only the player carries a Sigil; for
+        /// everyone else the hooks are one null check from neutral.
+        /// </summary>
+        public SootMeter Soot { get; set; }
+
+        /// <summary>
+        /// Damage this combatant deals: status multipliers and the Dimming's
+        /// edge combined. The attack pipeline reads this instead of the status
+        /// multiplier alone, so a Dimming bearer's blows are heavier.
+        /// </summary>
+        public float OutgoingDamageMultiplier
+        {
+            get { return Statuses.DamageDealtMultiplier * (Soot == null ? 1f : Soot.DamageDealtMultiplier); }
+        }
+
+        /// <summary>
+        /// Damage this combatant takes: status multipliers and the Dimming's
+        /// Price combined. The Dimming's second edge, and the one that punishes
+        /// standing in the dark too long.
+        /// </summary>
+        public float IncomingDamageMultiplier
+        {
+            get { return Statuses.DamageTakenMultiplier * (Soot == null ? 1f : Soot.DamageTakenMultiplier); }
+        }
+
         /// <summary>Fired once, the first time this combatant's health reaches zero.</summary>
         public event Action<Combatant> Died;
 
@@ -339,6 +366,7 @@ namespace Ghasaq.Core.Combat
 
             Statuses.Tick(deltaTime);
             Vitals.Tick(deltaTime);
+            Soot?.Tick(deltaTime);
 
             if (_knockbackSpeed > 0f)
             {
@@ -404,6 +432,10 @@ namespace Ghasaq.Core.Combat
             {
                 Sigil.Reset();
             }
+
+            // And the Soot is washed off: a retry begins at the meter's zero,
+            // not dimmed by the attempt that just failed.
+            Soot?.Reset();
 
             _position = position;
             _facingDegrees = FMath.Repeat(facingDegrees, 360f);

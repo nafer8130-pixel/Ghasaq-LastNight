@@ -2,7 +2,7 @@ name: CI
 
 # Verification gates that need no Android toolchain:
 #   * no retired word from the earlier identity remains (Tools/check-naming.sh)
-#   * the engine-free core is pure and its 604 tests pass
+#   * the engine-free core is pure and its 619 tests pass
 #   * the repository is a coherent Godot 4.5 project
 #   * the Godot C# assembly builds and a headless smoke test runs inside Godot
 #
@@ -53,7 +53,7 @@ jobs:
       - name: Core purity (engine-free C#)
         run: bash Tools/check-core-purity.sh
 
-      - name: Core tests (604)
+      - name: Core tests (619)
         run: bash Tools/test-core.sh
 
       - name: Godot project layout

@@ -270,6 +270,14 @@ namespace Ghasaq.Core.Combat
                 _self.Sigil?.NotifyDashStarted();
             }
 
+            // Using the Ghasaq leaves soot, and it is committed here for the
+            // same reason: the meter answers the decision to burn, not whether
+            // the blow landed.
+            if (ability.UsesGhasaqPower)
+            {
+                _self.Soot?.NotifyGhasaqUsed();
+            }
+
             // An ability with no windup is left in the Windup phase with a zero
             // timer, and lands on the next Tick. It is deliberately NOT landed
             // here: Tick clears the landed flag as its first action, so setting

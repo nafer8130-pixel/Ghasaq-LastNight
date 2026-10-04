@@ -43,8 +43,14 @@ namespace Ghasaq.Game
 
         // ---- layout (canvas units; the project stretches a 1920x1080 canvas) ----
         private const float Margin = 28f;
-        private const float BarWidth = 560f;
+
+        /// <summary>The vitals bar's width in canvas units; the Soot bar shares it. Public so the smoke test can hold a label to it.</summary>
+        public const float BarWidth = 560f;
+
         private const float BarHeight = 30f;
+
+        /// <summary>The size the bar labels are drawn at. Public for the same reason as <see cref="BarWidth"/>.</summary>
+        public const int BarLabelSize = 18;
         private const float StickRadius = 160f;
         private const float ButtonSize = 132f;
         private const float ButtonGap = 16f;
@@ -387,13 +393,49 @@ namespace Ghasaq.Game
             DrawBar(Margin, staminaY, BarWidth * 0.8f, BarHeight, new Color(0.04f, 0.05f, 0.06f, 0.75f),
                 new Color(0.30f, 0.52f, 0.58f, 0.95f), staminaFraction,
                 Mathf.RoundToInt(player.Vitals.Stamina) + " / " + Mathf.RoundToInt(player.Vitals.MaxStamina));
+
+            DrawSootBar(player);
+        }
+
+        /// <summary>
+        /// The السُّخام / Soot meter (plan section 3.6), drawn under the vitals
+        /// because that is what it is: the Price the Ghasaq is charging the
+        /// body right now. Grey while the bearer is clear, dimming toward red
+        /// as the meter climbs, and one word - عَتْمة - the moment the
+        /// Dimming begins, so the state is never something the player has to
+        /// infer from the numbers. The optional part of the plan - the light
+        /// visual distortion, which accessibility settings will be able to
+        /// turn off - is not built yet; the bar and the mark carry the state
+        /// until there is a settings screen to switch it off in.
+        /// </summary>
+        private void DrawSootBar(Combatant player)
+        {
+            SootMeter soot = player.Soot;
+            if (soot == null)
+            {
+                return;
+            }
+
+            float y = Margin + (BarHeight + 6f) * 2f;
+            string label = "السُّخام: " + Mathf.RoundToInt(soot.Soot) + " / " + Mathf.RoundToInt(SootTuning.Max);
+            Color clear = new Color(0.36f, 0.33f, 0.30f, 0.9f);
+            Color fill = clear;
+
+            if (soot.IsDimming)
+            {
+                fill = clear.Lerp(new Color(0.74f, 0.22f, 0.18f, 0.95f), soot.DimmingFraction);
+                label += "    عَتْمة";
+            }
+
+            DrawBar(Margin, y, BarWidth * 0.8f, BarHeight,
+                new Color(0.04f, 0.04f, 0.05f, 0.75f), fill, soot.Fraction, label);
         }
 
         private void DrawBar(float x, float y, float width, float height, Color back, Color fill, float fraction, string label)
         {
             DrawRect(new Rect2(x, y, width, height), back);
             DrawRect(new Rect2(x, y, width * fraction, height), fill);
-            DrawString(_font, new Vector2(x + 8f, y + height - 8f), label, HorizontalAlignment.Left, -1, 18, new Color(1f, 1f, 1f, 0.92f));
+            DrawString(_font, new Vector2(x + 8f, y + height - 8f), label, HorizontalAlignment.Left, -1, BarLabelSize, new Color(1f, 1f, 1f, 0.92f));
         }
 
         private void DrawExperience()
@@ -559,7 +601,7 @@ namespace Ghasaq.Game
                 line += "    POINTS " + _session.Progression.UnspentAttributePoints;
             }
 
-            DrawString(_font, new Vector2(Margin, Margin + (BarHeight + 6f) * 2f + 26f), line,
+            DrawString(_font, new Vector2(Margin, Margin + (BarHeight + 6f) * 3f + 26f), line,
                 HorizontalAlignment.Left, -1, 18, new Color(0.8f, 0.8f, 0.85f, 0.9f));
 
             DrawString(_font, new Vector2(Size.X - Margin, Margin + 110f), CurrentObjectiveText(),
@@ -612,7 +654,7 @@ namespace Ghasaq.Game
         private void DrawSigilSurface()
         {
             float x = Margin;
-            float y = Margin + (BarHeight + 6f) * 2f + 72f;
+            float y = Margin + (BarHeight + 6f) * 3f + 72f;
 
             SigilDefinition sigil = _session?.EquippedSigil;
             Combatant player = _session?.Player;

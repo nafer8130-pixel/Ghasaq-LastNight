@@ -261,8 +261,8 @@ namespace Ghasaq.Core.Combat
                 request,
                 defenderArmor: target.Stats.Get(StatId.Armor),
                 defenderResistance: target.Vitals.Resistance.Get(ability.DamageType),
-                attackerDamageMultiplier: attacker.Statuses.DamageDealtMultiplier,
-                defenderDamageTakenMultiplier: target.Statuses.DamageTakenMultiplier,
+                attackerDamageMultiplier: attacker.OutgoingDamageMultiplier,
+                defenderDamageTakenMultiplier: target.IncomingDamageMultiplier,
                 rng: rng);
 
             if (result.IsZero)
@@ -487,8 +487,8 @@ namespace Ghasaq.Core.Combat
                     request,
                     defenderArmor: candidate.Stats.Get(StatId.Armor),
                     defenderResistance: candidate.Vitals.Resistance.Get(damageType),
-                    attackerDamageMultiplier: source.Statuses.DamageDealtMultiplier,
-                    defenderDamageTakenMultiplier: candidate.Statuses.DamageTakenMultiplier,
+                    attackerDamageMultiplier: source.OutgoingDamageMultiplier,
+                    defenderDamageTakenMultiplier: candidate.IncomingDamageMultiplier,
                     rng: rng);
 
                 if (result.IsZero)

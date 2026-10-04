@@ -4,6 +4,68 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## The Soot pass: the meter and the Dimming (2026-10-04)
+
+The remaining slice work of [Soot.md](Soot.md) is done: committing to a
+Ghasaq-keyed ability fills a run-long meter, and past its threshold the العَتْمة
+/ Dimming prices the fight in both directions - heavier blows, frailer body -
+with the meter and the state shown on the HUD (plan §3.6). The plan's "light
+visual distortion" is deliberately **not** built: it is gated on accessibility
+settings ("can be turned off", plan §3.6/§6) and this build has no settings
+screen; the bar and the عَتْمة mark carry the state until there is one.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **619 passed, 0 failed** (311 ms; 604 before this change, 15 new) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 33/33 checks** (27 before; 6 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors or warnings; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 103,997,662 bytes (99 MB), signed and verified with `apksigner` |
+
+The APK's sha256: `e1eb6320aeb408129f59cf418762cc1db0ea51103c8604df26d3f9aa6e7381d3`.
+
+New in code:
+
+- `Core/Combat/Soot.cs` — `SootTuning` (draft numbers: 100 full, +20 per
+  Ghasaq commitment, −2/s fade, threshold 60, +25% damage dealt and +35% damage
+  taken at full) and `SootMeter` (`Soot`, `Fraction`, `IsDimming`,
+  `DimmingFraction`, the two multipliers). The bonuses scale from the threshold
+  and are exactly zero at it; the meter owns no damage path, so it can never be
+  lethal on its own.
+- `Combatant.Soot` + `OutgoingDamageMultiplier` / `IncomingDamageMultiplier` —
+  the damage pipeline now reads the combined status + Dimming multipliers, and
+  `Combatant.Tick` fades the meter while `Revive` washes it off (a retry starts
+  at zero, like the Sigil's Price). A combatant without a meter is one null
+  check from neutral.
+- `AbilityController.TryActivate` — a `UsesGhasaqPower` commitment is charged at
+  the moment the stamina is spent, so an interrupted wind-up keeps its soot; a
+  refused activation burns nothing.
+- `AttackResolver` — both `Resolve` and `ApplyRadialBurst` read the combined
+  multipliers, so a dimmed Ash or Glass burst is priced like any other blow.
+- `scripts/GameRoot.cs` — the run hands the player its meter
+  (`player.Soot = new SootMeter()`); it is run state and never enters a save.
+  The readiness line now ends `sigil 'lantern', soot 0`.
+- `scripts/Hud.cs` — `DrawSootBar`: a third bar under the vitals, grey while
+  clear and dimming toward red, labelled `السُّخام: N / 100` with the word
+  `عَتْمة` the moment the state begins. `BarWidth` and `BarLabelSize` are public
+  so the smoke test can measure the label the way it is drawn.
+- Fifteen core tests (`SootTests`) — the meter, both edges, the fade, the
+  threshold, the commitment and refusal rules, revival, and the couplings to
+  `AbilityController` and `AttackResolver`.
+- Six smoke checks — the kit carries a Ghasaq-keyed ability for the meter to
+  follow, the third burn lands exactly on the threshold (still neutral), a full
+  meter sharpens both edges, half a minute of rest clears it, and every glyph of
+  the bar's label exists in the font and fits the bar.
+
+**Not measured:** the bar itself is drawing, and this environment still has no
+display. Its layout, colours and the عَتْمة mark have been exercised by
+compilation, by the label-fit measurement and by a 30-second error-free headless
+run, but never *seen*; whether the Dimming *feels* like a fair trade is exactly
+the question the plan says only a device and a player can answer.
+
 ## The juice pass: telegraph, hit-stop and the hit spark (2026-10-04)
 
 Phase A's mandatory juice, minus what already existed (camera shake, the colour
