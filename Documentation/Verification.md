@@ -25,7 +25,10 @@ screen; the bar and the عَتْمة mark carry the state until there is one.
 | The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors or warnings; `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern', soot 0` |
 | Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 103,997,662 bytes (99 MB), signed and verified with `apksigner` |
 
-The APK's sha256: `e1eb6320aeb408129f59cf418762cc1db0ea51103c8604df26d3f9aa6e7381d3`.
+The APK was first built on `6df2aeb` (103,997,662 bytes, sha256
+`e1eb6320aeb408129f59cf418762cc1db0ea51103c8604df26d3f9aa6e7381d3`) and rebuilt
+byte-size-identical after the wording fix, at `1c79b7d`:
+`dd08ed993880e3579814d3c20e1ca4759947b81f162cc34e76904c5f0cadc737`.
 
 New in code:
 
@@ -65,6 +68,23 @@ display. Its layout, colours and the عَتْمة mark have been exercised by
 compilation, by the label-fit measurement and by a 30-second error-free headless
 run, but never *seen*; whether the Dimming *feels* like a fair trade is exactly
 the question the plan says only a device and a player can answer.
+
+One CI run is worth recording. `ci.yml` #12 failed on the first push
+(`6df2aeb`): `check-naming.sh` greps **tracked** files, and the three new files
+were still untracked when the gate was run locally - so the gate was green on
+this machine and red on the runner. The wording was fixed in `1c79b7d` (the two
+files rewritten around the retired word) and nothing else about the change
+moved; the local habit is now to run the gate after `git add`, not before.
+
+The workflows ran on GitHub for the fix, on `1c79b7d`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #13 | **success** — naming gate, purity, the 619 tests, layout, build, smoke (33 checks) |
+| `android.yml` | Android ARM64 #13 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
+(The Android export of the first push, #12, had succeeded as well: the naming
+gate lives only in `ci.yml`.)
 
 ## The juice pass: telegraph, hit-stop and the hit spark (2026-10-04)
 
