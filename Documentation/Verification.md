@@ -78,6 +78,13 @@ APK shipping the font. Whether the surface reads well at 1920x1080, whether the
 Arabic shaping *looks* right, and the whole feel gate of
 [Sigils.md](Sigils.md) still need a screen and a player.
 
+The workflows ran on GitHub for this change, on `f23f1e7`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #8 | **success** — naming gate, purity, the 601 tests, layout, build, smoke (24 checks) |
+| `android.yml` | Android ARM64 #8 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
 ## The five الوَسْم / Sigils in the Core (2026-10-04)
 
 [Documentation/Sigils.md](Sigils.md) is no longer a design in prose only: all
