@@ -57,6 +57,7 @@ namespace Ghasaq.Tests
             CheckSessionBootsAndFights();
             CheckSaveRoundTrip();
             CheckSigilSurface();
+            CheckBattleFeedback();
 
             if (_failures == 0)
             {
@@ -274,6 +275,36 @@ namespace Ghasaq.Tests
             Participant participant = session.Encounter.Find(session.Player.Id);
             Check(participant != null && participant.Abilities.LockedAbilityIndex >= 0,
                 "Silence marks the loudest ability on its HUD button");
+        }
+
+        // ------------------------------------------------------ the juice pass ---
+
+        /// <summary>
+        /// The hit feedback's numbers: where a blow falls inside the plan's
+        /// hit-stop band and how a wind-up ramps. Both are pure arithmetic in
+        /// <see cref="BattleFeedback"/>; asserting them here keeps the view
+        /// honest about the budget the plan signed while its drawing stays a
+        /// device question.
+        /// </summary>
+        private void CheckBattleFeedback()
+        {
+            float min = CombatTuning.HitStopMinMilliseconds / 1000f;
+            float max = CombatTuning.HitStopMaxMilliseconds / 1000f;
+
+            float light = BattleFeedback.HitStopSeconds(1f, 100f, false);
+            float heavy = BattleFeedback.HitStopSeconds(20f, 100f, false);
+            Check(light >= min && heavy <= max && heavy > light,
+                "hit-stop stays inside the plan's 40-80 ms band and grows with the blow");
+
+            float critical = BattleFeedback.HitStopSeconds(1f, 100f, true);
+            Check(critical > light && critical <= max, "a critical blow takes a heavier stop");
+
+            float startOfWindup = BattleFeedback.TelegraphStrength(CastPhase.Windup, 0.5f, 0.5f);
+            float midWindup = BattleFeedback.TelegraphStrength(CastPhase.Windup, 0.5f, 0.25f);
+            float endOfWindup = BattleFeedback.TelegraphStrength(CastPhase.Windup, 0.5f, 0f);
+            Check(startOfWindup == 0f && midWindup > 0f && midWindup < 1f && endOfWindup == 1f
+                && BattleFeedback.TelegraphStrength(CastPhase.Ready, 0.5f, 0.5f) == 0f,
+                "the telegraph ramps from 0 to 1 across the wind-up and is silent when ready");
         }
     }
 }

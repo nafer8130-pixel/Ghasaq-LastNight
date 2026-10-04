@@ -143,8 +143,24 @@ namespace Ghasaq.Core.Combat
         /// is included because kill credit, aggro propagation and loot all need to
         /// know who dealt the blow, and the attacker cannot be recovered after the
         /// fact from the result alone. Null for environmental damage.
+        ///
+        /// Fires for every damage path, including damage that bypassed
+        /// <see cref="ReceiveDamage"/> - a bleed or famine tick reports here too.
+        /// For the combat path alone, see <see cref="Struck"/>.
         /// </summary>
         public event Action<Combatant, Combatant, DamageResult> Damaged;
+
+        /// <summary>
+        /// Raised when a blow from the combat path actually lands through
+        /// <see cref="ReceiveDamage"/> - the hit, as opposed to the health change.
+        ///
+        /// Kept apart from <see cref="Damaged"/> deliberately: the view layer
+        /// reads this for hit-stop, camera shake and the spark, and a damage
+        /// over time tick is none of those. A blow that is fully refused (an
+        /// open invulnerability window, or a shield that eats all of it) does not
+        /// fire at all.
+        /// </summary>
+        public event Action<Combatant, Combatant, DamageResult> Struck;
 
         public Float3 Position
         {
@@ -293,6 +309,10 @@ namespace Ghasaq.Core.Combat
             {
                 return 0f;
             }
+
+            // The combat path, not the health pool, so the view can give a
+            // landed blow its weight without a famine tick stopping the fight.
+            Struck?.Invoke(this, source, effective);
 
             if (!Vitals.IsAlive)
             {

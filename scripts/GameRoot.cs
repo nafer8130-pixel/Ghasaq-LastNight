@@ -108,7 +108,12 @@ namespace Ghasaq.Game
         private float _autoSaveTimer;
         private bool _gateArmed = true;
 
+        private readonly List<HitSpark> _sparks = new List<HitSpark>(SparkPoolSize);
+        private int _nextSpark;
+        private float _hitStopRemaining;
+
         private const float CorpseLingerSeconds = 1.6f;
+        private const int SparkPoolSize = 8;
 
         public override void _Ready()
         {
@@ -121,6 +126,8 @@ namespace Ghasaq.Game
 
             _menu.Root = this;
             _menu.SetOpen(false);
+
+            BuildHitSparks();
 
             _playerScene = GD.Load<PackedScene>("res://scenes/Player.tscn");
             _enemyScene = GD.Load<PackedScene>("res://scenes/Enemy.tscn");
@@ -227,6 +234,7 @@ namespace Ghasaq.Game
 
             // The Sigilbearer's placeholder tint and scale, from the project's bootstrap.
             _playerView.Bind(Session.Player, new Color(0.86f, 0.78f, 0.62f), 1.05f);
+            _playerView.Hit += result => OnBlowLanded(Session.Player, result, victimIsBoss: false);
 
             _views.Add(_playerView);
 
@@ -266,7 +274,7 @@ namespace Ghasaq.Game
                 // regions gets two independent RNG streams rather than one shared roll.
                 Combatant combatant = archetype.Create(idPrefix + entry.Archetype + "-" + i, position, entry.Level);
 
-                encounter.AddEnemy(combatant, archetype.Abilities, archetype.Brain, archetype.AttackAbilityIndex);
+                Participant participant = encounter.AddEnemy(combatant, archetype.Abilities, archetype.Brain, archetype.AttackAbilityIndex);
 
                 var view = _enemyScene.Instantiate<EnemyView>();
                 view.Name = "EnemyView " + combatant.Id;
@@ -275,9 +283,12 @@ namespace Ghasaq.Game
                 view.SetBossShape(archetype.IsBoss);
                 view.Bind(combatant, ResolveTint(archetype.TintRgb), archetype.BodyScale);
 
+                // The view draws the enemy's wind-up: the controller is the only
+                // place that knows a blow is being committed to.
+                view.TrackAbilities(participant.Abilities);
+
                 CombatantView captured = view;
-                float shake = archetype.IsBoss ? 0.5f : 0.12f;
-                view.Hit += result => _cameraRig.Shake(shake);
+                view.Hit += result => OnBlowLanded(combatant, result, victimIsBoss: archetype.IsBoss);
                 view.Died += () => OnViewDied(captured);
 
                 _views.Add(view);
@@ -578,6 +589,16 @@ namespace Ghasaq.Game
                 return;
             }
 
+            if (_hitStopRemaining > 0f)
+            {
+                // A landed blow holds the frame for 40-80 ms (the plan's hit-stop
+                // band, placed by BattleFeedback): the simulation does not step
+                // and nothing moves, so the blow reads. The core stays the only
+                // authority over state; the host only chooses when to step it.
+                _hitStopRemaining = Mathf.Max(0f, _hitStopRemaining - delta);
+                return;
+            }
+
             InputReader.Poll(delta);
             Session.Update(delta);
 
@@ -663,6 +684,59 @@ namespace Ghasaq.Game
 
             Float3 position = victim.Position;
             _hud.ReportDamage(new Vector3(position.X, position.Y + 1.8f, position.Z), result.Applied, result.Critical);
+        }
+
+        // ------------------------------ hit feedback ------------------------------
+
+        /// <summary>
+        /// A blow has actually landed (the core's Struck event, not a damage
+        /// over time tick): kick the camera, hold the frame, throw a spark.
+        /// All three read the same resolved hit, so a dodged or shield-eaten
+        /// blow produces none of them - it never lands.
+        /// </summary>
+        private void OnBlowLanded(Combatant victim, DamageResult result, bool victimIsBoss)
+        {
+            if (victim == null)
+            {
+                return;
+            }
+
+            bool victimIsPlayer = ReferenceEquals(victim, Session?.Player);
+
+            _cameraRig.Shake(BattleFeedback.ShakeFor(victimIsPlayer, victimIsBoss));
+
+            _hitStopRemaining = Mathf.Max(_hitStopRemaining,
+                BattleFeedback.HitStopSeconds(result.Applied, victim.Vitals.MaxHealth, result.Critical));
+
+            SpawnSpark(victim, result);
+        }
+
+        private void BuildHitSparks()
+        {
+            for (int i = 0; i < SparkPoolSize; i++)
+            {
+                var spark = new HitSpark { Name = "HitSpark " + i };
+                _viewsRoot.AddChild(spark);
+                _sparks.Add(spark);
+            }
+        }
+
+        private void SpawnSpark(Combatant victim, DamageResult result)
+        {
+            if (_sparks.Count == 0)
+            {
+                return;
+            }
+
+            Float3 position = victim.Position;
+            Color color = result.Critical
+                ? new Color(1f, 0.85f, 0.3f)
+                : new Color(1f, 0.55f, 0.3f);
+
+            HitSpark spark = _sparks[_nextSpark];
+            _nextSpark = (_nextSpark + 1) % _sparks.Count;
+
+            spark.Play(new Vector3(position.X, position.Y + 1f, position.Z), color);
         }
 
         private void OnEncounterDied(Combatant victim, Participant participant)

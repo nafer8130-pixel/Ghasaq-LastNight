@@ -34,9 +34,9 @@ Unity folders (`Assets/`, `Packages/`, `ProjectSettings/`) are gone too.
 
 | Area | State |
 | --- | --- |
-| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, items, quests, world, saves | **Done — 601 tests passing** |
+| Engine-free C# core (`Core/`) — combat, AI, Sigils and Prices, items, quests, world, saves | **Done — 604 tests passing** |
 | Godot game layer (`scripts/`, `scenes/`) — arena, player, enemies, camera, input, HUD (Sigil Price surface), menu (Hearth), saves | **Done — builds clean, runs headless** |
-| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface |
+| Godot headless smoke test | **Passing** — RNG parity, session boot, a resolved fight, save round-trip, the Sigil Price surface, the hit-feedback rules |
 | Android ARM64 APK | **Produced and validated locally** — see below |
 | GitHub Actions CI | `ci.yml` runs the Godot gates; `android.yml` exports the ARM64 APK |
 
@@ -46,17 +46,19 @@ The following are verified **by execution**, on a machine with no game engine
 installed beyond Godot itself:
 
 - **The game rules:** `bash Tools/test-core.sh` compiles the real core sources and
-  runs **601 tests**.
+  runs **604 tests**.
 - **The Godot assembly:** `bash Tools/test-godot.sh` builds `Ghasaq.csproj`,
   imports the project, and runs a headless smoke test **inside Godot** that proves
   the deterministic RNG parity, boots a session, resolves a real fight,
-  round-trips a save, and proves the Sigil Price surface is drawable (the UI font
-  covers Arabic and Latin, and every authored Price line fits the HUD card).
+  round-trips a save, proves the Sigil Price surface is drawable (the UI font
+  covers Arabic and Latin, and every authored Price line fits the HUD card), and
+  checks the hit-feedback arithmetic (hit-stop inside its 40–80 ms band, the
+  telegraph ramp).
 - **The main scene:** running `scenes/Main.tscn` headless assembles the game —
   `Ghasaq ready: region 'grey-wilds', 5 hostiles, 5 quests, level 1, sigil 'lantern'`.
 - **A real APK:** `bash Tools/build-android.sh` produced
-  `build/android/ghasaq.apk` (103,985,224 bytes / 99 MB; final run with the Price
-  surface in `Documentation/Verification.md`) locally, containing
+  `build/android/ghasaq.apk` (103,993,566 bytes / 99 MB; final run with the juice
+  pass in `Documentation/Verification.md`) locally, containing
   `lib/arm64-v8a/libgodot_android.so`, `assets/.godot/mono/publish/arm64/Ghasaq.dll`,
   `Ghasaq.Core.dll` and both `.fontdata` files the Arabic Sigil lines draw with,
   with `package=com.ghasaq.thelastnight`, the launcher label
@@ -75,7 +77,7 @@ Android ARM64 export both succeeded on the rename commit (`f6832c2`).
 ```bash
 bash Tools/check-core-purity.sh   # the core must stay engine-free (Godot/Unity/Unreal)
 bash Tools/check-naming.sh        # no retired identifier from the earlier identity remains
-bash Tools/test-core.sh           # purity gate + 601 core tests
+bash Tools/test-core.sh           # purity gate + 604 core tests
 bash Tools/check-godot-project.sh # the Godot project layout is complete and engine-clean
 bash Tools/test-godot.sh          # build the C# assembly + headless smoke test
 bash Tools/build-android.sh       # export the Android ARM64 APK (needs Godot + Android SDK)
@@ -96,7 +98,7 @@ scripts/                 the Godot game layer (C#): views, camera, input, HUD, m
 assets/fonts/            the bundled Noto fonts (Latin + Arabic) the UI text draws with
 Core/                    the engine-free C# game rules (the source of truth)
 Tests/
-  Ghasaq.Core.Tests/  xUnit suite for the core (601 tests)
+  Ghasaq.Core.Tests/  xUnit suite for the core (604 tests)
   Ghasaq.Core.Build/  compiles Core/ as a portable netstandard2.1 library
   Godot/                   the headless Godot smoke test
 Tools/                   command-line verification and build scripts

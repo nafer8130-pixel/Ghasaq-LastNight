@@ -75,7 +75,7 @@ fi
 
 for script in GameRoot.cs CombatantView.cs PlayerView.cs EnemyView.cs Arena.cs \
     CameraRig.cs PlayerInputReader.cs PlayerDriver.cs OcclusionProvider.cs \
-    Hud.cs GameMenu.cs GodotSaveStorage.cs CoordinateConvert.cs; do
+    Hud.cs GameMenu.cs BattleFeedback.cs HitSpark.cs GodotSaveStorage.cs CoordinateConvert.cs; do
     if [ ! -f "$ROOT/scripts/$script" ]; then
         fail "missing presentation script: scripts/$script"
     fi

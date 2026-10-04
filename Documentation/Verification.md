@@ -4,6 +4,57 @@ This file records what has actually been **executed and observed**, and what has
 not. It exists because "the code compiles" and "the tests pass" are not the same
 claim as "the game works", and the difference matters.
 
+## The juice pass: telegraph, hit-stop and the hit spark (2026-10-04)
+
+Phase A's mandatory juice, minus what already existed (camera shake, the colour
+flash, the floating damage number). The plan's numbers were already pinned in
+`CombatTuning` (section 7: ≥ 400 ms telegraph, 40–80 ms hit-stop); what was
+missing was that the fight actually showed them.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Naming gate | `bash Tools/check-naming.sh` | **Pass** |
+| Core purity gate | `bash Tools/check-core-purity.sh` | **Pass** |
+| Core test suite | `bash Tools/test-core.sh` | **604 passed, 0 failed** (285 ms; 601 before this change) |
+| Godot project layout | `bash Tools/check-godot-project.sh` | **Pass** — also covers the two new view scripts |
+| Godot C# assembly builds | `dotnet build Ghasaq.csproj` | **Pass** — 0 warnings, 0 errors |
+| Headless smoke test inside Godot | `bash Tools/test-godot.sh <godot>` | **Pass — 27/27 checks** (24 before; 3 new) |
+| The main scene assembles and runs | `godot --headless --path . --quit-after 1800` | **Pass** — 30 s, no errors or warnings |
+| Android ARM64 APK | `bash Tools/build-android.sh` | **BUILD SUCCESS** — 103,993,566 bytes (99 MB) |
+
+New in code:
+
+- `Core/Combat/Combatant.Struck` — an event raised only when a blow actually
+  lands through `ReceiveDamage`: not for a bleed or famine tick (those still
+  report through `Damaged`), and not for a blow that was refused outright. That
+  lets the view treat "a hit" and "health changed" as different things.
+- `scripts/BattleFeedback.cs` — where feedback falls inside the signed budgets:
+  hit-stop scales inside the 40–80 ms band (a chip takes the minimum; a blow
+  worth 15% of the victim's health, or any crit, takes the maximum), the camera
+  kicks hardest when the player is the one hit, and the telegraph ramps from 0
+  at commit to 1 at the blow.
+- `scripts/CombatantView.cs` — an enemy view that tracks its `AbilityController`
+  warms toward the warning colour as the wind-up approaches, so the ≥ 400 ms
+  window is something the player reads rather than something only the validator
+  knows; `Hit` now fires from `Struck`, so shake, hit-stop and the spark answer
+  landed blows only.
+- `scripts/HitSpark.cs` + `GameRoot` — a pool of eight code-built sparks
+  (unshaded, expanding and fading over 0.16 s, cycled per hit, no allocation at
+  hit time), and the hold itself: a landed blow stops the host from stepping the
+  simulation for its band seconds, so the frame freezes. The core is still the
+  only authority over state; the host only chooses when to step it.
+- Three core tests pin the `Struck` line: a landed blow strikes, a damage over
+  time tick does not, and a refused blow does not.
+- Three smoke checks pin the arithmetic: the hit-stop band holds and grows with
+  the blow, a crit takes a heavier stop, and the telegraph ramps from 0 to 1 and
+  is silent when ready.
+
+**Not measured:** all of this is drawing, and this environment still has no
+display. The telegraph colour, the spark and the hold have been exercised by
+compilation, by the rules' checks and by a 30-second error-free headless run,
+but never *seen*. Whether a 40–80 ms hold feels right is exactly the question
+the plan says only a device and a player can answer.
+
 ## The Price surface: the Sigil on the HUD (2026-10-04)
 
 The remaining slice work of [Sigils.md](Sigils.md) is done: every carried ثمن /
