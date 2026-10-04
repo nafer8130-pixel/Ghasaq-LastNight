@@ -65,6 +65,13 @@ binding correctly at the menu; the check now travels through
 `GameRoot.TravelTo` — the same call the World page makes — which clears the old
 region's encounter and spawns the camp's (none).
 
+Both workflows ran on GitHub for the change, on `7a16ab8`:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| `ci.yml` | CI #15 | **success** — naming gate, purity, the 633 tests, layout, build, smoke (48 checks) |
+| `android.yml` | Android ARM64 #15 | **success** — the ARM64 APK was exported and uploaded on a GitHub runner |
+
 ## The Soot pass: the meter and the Dimming (2026-10-04)
 
 The remaining slice work of [Soot.md](Soot.md) is done: committing to a
